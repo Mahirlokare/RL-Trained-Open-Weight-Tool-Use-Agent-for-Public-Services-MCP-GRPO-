@@ -285,8 +285,7 @@ with gr.Blocks(title="Civic AI - Universal Public Services MCP Agent") as demo:
             
             chatbot = gr.Chatbot(
                 label="Civic AI Assistant",
-                height=450,
-                show_copy_button=True
+                height=450
             )
             
             with gr.Row():
