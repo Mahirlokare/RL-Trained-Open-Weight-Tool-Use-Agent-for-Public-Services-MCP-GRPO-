@@ -1,22 +1,16 @@
 """
-Public Services MCP Servers (5 Distinct Production Servers):
+Public Services MCP Servers (5 Distinct Production Servers with Official Citations):
 1. Scheme Service: Search & query government welfare schemes and criteria.
 2. OCR Document Scanner: Extract structured fields from citizen identity documents.
 3. Eligibility Service: Verify citizen rules, income caps, and required proofs.
 4. Appointment Calendar: Center slot availability and booking at Seva Kendra.
 5. Notification Service: Dispatch SMS / WhatsApp confirmation tokens.
-
-Includes strict permission scopes:
-- 'read:schemes'
-- 'read:ocr'
-- 'verify:eligibility'
-- 'write:appointments'
-- 'write:sms'
 """
 from typing import Dict, Any, List
 from mcp_servers.registry import MCPToolServer, MCPHub
+from mcp_servers.security import SecurityPolicyEngine
 
-# --- Database Mock Data ---
+# --- Database with Official Citations ---
 SCHEMES_DB = {
     "PMMVY": {
         "id": "PMMVY",
@@ -26,7 +20,10 @@ SCHEMES_DB = {
         "max_income_annual": 800000,
         "benefit_amount": 5000,
         "required_docs": ["Aadhaar", "MCP_Card", "Bank_Passbook"],
-        "description": "Cash incentive for pregnant women and lactating mothers for health and nutrition."
+        "description": "Cash incentive for pregnant women and lactating mothers for health and nutrition.",
+        "official_portal": "https://pmmvy.wcd.gov.in",
+        "verified_as_of": "2026-11",
+        "helpline": "104"
     },
     "PM_KISAN": {
         "id": "PM_KISAN",
@@ -36,7 +33,10 @@ SCHEMES_DB = {
         "max_land_hectares": 2.0,
         "benefit_amount": 6000,
         "required_docs": ["Aadhaar", "Land_Record_7_12", "Bank_Passbook"],
-        "description": "Income support of Rs. 6,000 per year in three equal installments to small farmers."
+        "description": "Income support of Rs. 6,000 per year in three equal installments to small farmers.",
+        "official_portal": "https://pmkisan.gov.in",
+        "verified_as_of": "2026-11",
+        "helpline": "155261"
     },
     "VAYO_SHRESTHA": {
         "id": "VAYO_SHRESTHA",
@@ -46,7 +46,10 @@ SCHEMES_DB = {
         "max_income_annual": 300000,
         "benefit_amount": 8000,
         "required_docs": ["Aadhaar", "Age_Proof", "Income_Certificate"],
-        "description": "Assistance and physical aid devices for senior citizens from low-income households."
+        "description": "Assistance and physical aid devices for senior citizens from low-income households.",
+        "official_portal": "https://socialjustice.gov.in",
+        "verified_as_of": "2026-11",
+        "helpline": "14567"
     }
 }
 
@@ -57,8 +60,8 @@ SLOTS_DB = {
 }
 
 # --- Server 1: Scheme Service ---
-def build_scheme_server() -> MCPToolServer:
-    server = MCPToolServer("scheme-service", "Welfare scheme eligibility and database search")
+def build_scheme_server(sec: SecurityPolicyEngine) -> MCPToolServer:
+    server = MCPToolServer("scheme-service", "Welfare scheme eligibility and database search", sec)
 
     def search_schemes(query: str, category: str = None) -> Dict[str, Any]:
         results = []
@@ -86,7 +89,8 @@ def build_scheme_server() -> MCPToolServer:
             },
             "required": ["query"]
         },
-        handler=search_schemes
+        handler=search_schemes,
+        scope="read:schemes"
     )
 
     server.register_tool(
@@ -99,13 +103,14 @@ def build_scheme_server() -> MCPToolServer:
             },
             "required": ["scheme_id"]
         },
-        handler=get_scheme_details
+        handler=get_scheme_details,
+        scope="read:schemes"
     )
     return server
 
 # --- Server 2: OCR Document Scanner Service ---
-def build_ocr_server() -> MCPToolServer:
-    server = MCPToolServer("ocr-service", "Document optical character recognition and field parsing")
+def build_ocr_server(sec: SecurityPolicyEngine) -> MCPToolServer:
+    server = MCPToolServer("ocr-service", "Document optical character recognition and field parsing", sec)
 
     def scan_document_ocr(document_type: str, document_reference: str) -> Dict[str, Any]:
         doc_t = document_type.upper()
@@ -114,7 +119,7 @@ def build_ocr_server() -> MCPToolServer:
                 "scope": "read:ocr",
                 "document_verified": True,
                 "document_type": "Aadhaar",
-                "extracted_fields": {"id_number": "XXXX-XXXX-1234", "dob_year": 1998, "state": "Maharashtra"}
+                "extracted_fields": {"id_masked": "XXXX-XXXX-1234", "dob_year": 1998, "state": "Maharashtra"}
             }
         elif "7_12" in doc_t or "LAND" in doc_t:
             return {
@@ -147,13 +152,14 @@ def build_ocr_server() -> MCPToolServer:
             },
             "required": ["document_type", "document_reference"]
         },
-        handler=scan_document_ocr
+        handler=scan_document_ocr,
+        scope="read:ocr"
     )
     return server
 
 # --- Server 3: Eligibility Rules Service ---
-def build_eligibility_server() -> MCPToolServer:
-    server = MCPToolServer("eligibility-service", "Citizen document verification and eligibility checking")
+def build_eligibility_server(sec: SecurityPolicyEngine) -> MCPToolServer:
+    server = MCPToolServer("eligibility-service", "Citizen document verification and eligibility checking", sec)
 
     def verify_eligibility(scheme_id: str, citizen_age: int, annual_income: float, documents_available: List[str]) -> Dict[str, Any]:
         sid = scheme_id.upper()
@@ -163,11 +169,21 @@ def build_eligibility_server() -> MCPToolServer:
         
         # Age check
         if citizen_age < scheme.get("min_age", 0):
-            return {"scope": "verify:eligibility", "eligible": False, "reason": f"Age {citizen_age} is below minimum requirement of {scheme['min_age']} years."}
+            return {
+                "scope": "verify:eligibility",
+                "eligible": False,
+                "reason": f"Age {citizen_age} is below minimum requirement of {scheme['min_age']} years.",
+                "official_portal": scheme["official_portal"]
+            }
         
         # Income check
         if scheme.get("max_income_annual") and annual_income > scheme["max_income_annual"]:
-            return {"scope": "verify:eligibility", "eligible": False, "reason": f"Income Rs. {annual_income} exceeds ceiling of Rs. {scheme['max_income_annual']}."}
+            return {
+                "scope": "verify:eligibility",
+                "eligible": False,
+                "reason": f"Income Rs. {annual_income} exceeds ceiling of Rs. {scheme['max_income_annual']}.",
+                "official_portal": scheme["official_portal"]
+            }
         
         # Document completeness check
         missing = [doc for doc in scheme["required_docs"] if doc not in documents_available]
@@ -177,7 +193,8 @@ def build_eligibility_server() -> MCPToolServer:
                 "eligible": True,
                 "documentation_ready": False,
                 "missing_documents": missing,
-                "message": f"Eligible in principle, but missing required proofs: {', '.join(missing)}"
+                "message": f"Eligible in principle, but missing required proofs: {', '.join(missing)}",
+                "official_portal": scheme["official_portal"]
             }
 
         return {
@@ -185,6 +202,8 @@ def build_eligibility_server() -> MCPToolServer:
             "eligible": True,
             "documentation_ready": True,
             "benefit_amount": scheme["benefit_amount"],
+            "official_portal": scheme["official_portal"],
+            "helpline": scheme["helpline"],
             "message": "Citizen fulfills all age, income, and documentation criteria."
         }
 
@@ -205,13 +224,14 @@ def build_eligibility_server() -> MCPToolServer:
             },
             "required": ["scheme_id", "citizen_age", "annual_income", "documents_available"]
         },
-        handler=verify_eligibility
+        handler=verify_eligibility,
+        scope="verify:eligibility"
     )
     return server
 
 # --- Server 4: Appointment Calendar Service ---
-def build_appointment_server() -> MCPToolServer:
-    server = MCPToolServer("appointment-service", "Seva Kendra center appointment management")
+def build_appointment_server(sec: SecurityPolicyEngine) -> MCPToolServer:
+    server = MCPToolServer("appointment-service", "Seva Kendra center appointment management", sec)
 
     def check_center_slots(center_id: str) -> Dict[str, Any]:
         cid = center_id.upper()
@@ -246,7 +266,8 @@ def build_appointment_server() -> MCPToolServer:
             },
             "required": ["center_id"]
         },
-        handler=check_center_slots
+        handler=check_center_slots,
+        scope="read:appointments"
     )
 
     server.register_tool(
@@ -262,13 +283,14 @@ def build_appointment_server() -> MCPToolServer:
             },
             "required": ["center_id", "slot_time", "citizen_name", "scheme_id"]
         },
-        handler=book_appointment
+        handler=book_appointment,
+        scope="write:appointments"
     )
     return server
 
 # --- Server 5: SMS Notification Dispatch Service ---
-def build_notification_server() -> MCPToolServer:
-    server = MCPToolServer("notification-service", "Citizen SMS and alert dispatch")
+def build_notification_server(sec: SecurityPolicyEngine) -> MCPToolServer:
+    server = MCPToolServer("notification-service", "Citizen SMS and alert dispatch", sec)
 
     def send_confirmation_sms(phone_number: str, booking_reference: str, message: str) -> Dict[str, Any]:
         clean_phone = phone_number.replace("+", "").replace("-", "")
@@ -295,16 +317,18 @@ def build_notification_server() -> MCPToolServer:
             },
             "required": ["phone_number", "booking_reference", "message"]
         },
-        handler=send_confirmation_sms
+        handler=send_confirmation_sms,
+        scope="write:sms"
     )
     return server
 
 def create_default_mcp_hub() -> MCPHub:
-    """Builds and wires all 5 standard MCP tool servers into a unified hub."""
+    """Builds and wires all 5 standard MCP tool servers with shared security policy engine."""
+    sec = SecurityPolicyEngine()
     hub = MCPHub()
-    hub.add_server(build_scheme_server())
-    hub.add_server(build_ocr_server())
-    hub.add_server(build_eligibility_server())
-    hub.add_server(build_appointment_server())
-    hub.add_server(build_notification_server())
+    hub.add_server(build_scheme_server(sec))
+    hub.add_server(build_ocr_server(sec))
+    hub.add_server(build_eligibility_server(sec))
+    hub.add_server(build_appointment_server(sec))
+    hub.add_server(build_notification_server(sec))
     return hub
