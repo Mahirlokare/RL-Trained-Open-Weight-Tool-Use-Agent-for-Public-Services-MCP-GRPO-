@@ -13,7 +13,7 @@ license: mit
 
 [![Live Web Application](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Live%20App-blue)](https://mahirlokare-civic-mcp-agent.hf.space)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Mahirlokare/RL-Trained-Open-Weight-Tool-Use-Agent-for-Public-Services-MCP-GRPO-/blob/main/notebooks/train_grpo_colab.ipynb)
-[![Pytest Suite](https://img.shields.io/badge/pytest-25%20passed-brightgreen.svg)](https://github.com/Mahirlokare/RL-Trained-Open-Weight-Tool-Use-Agent-for-Public-Services-MCP-GRPO-)
+[![Pytest Suite](https://img.shields.io/badge/pytest-29%20passed-brightgreen.svg)](https://github.com/Mahirlokare/RL-Trained-Open-Weight-Tool-Use-Agent-for-Public-Services-MCP-GRPO-)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
