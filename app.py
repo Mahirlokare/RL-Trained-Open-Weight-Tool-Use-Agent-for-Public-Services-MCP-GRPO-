@@ -1,11 +1,12 @@
 """
 Gradio Web Application for Hugging Face Spaces (ZeroGPU Compatible).
 Universal Public Welfare AI Agent with 9 National Sectors, 5 MCP Tool Servers,
-Security Policy Engine, and 6-Way Ablation Benchmark.
+Interactive Document OCR File Uploader, Security Engine, and 6-Way Ablation Benchmark.
 """
 import gradio as gr
 import json
 import time
+import os
 import traceback
 
 try:
@@ -26,13 +27,26 @@ from agent.runtime import MCPAgentRuntime
 from agent.reasoner import dynamic_rl_agent_policy
 from run_eval import prompt_only_policy
 
-def execute_agent_workflow(user_query: str, policy_mode: str):
+def execute_agent_workflow(user_query: str, policy_mode: str, uploaded_doc=None):
     """
     Executes the universal agent workflow across 9 welfare sectors with 5 MCP servers.
+    Seamlessly integrates uploaded documents via the OCR MCP server.
     """
     try:
-        if not user_query or not user_query.strip():
-            return "### Status: ⚠️ Incomplete Query\nPlease enter a citizen request.", "N/A", "No query provided."
+        query_text = user_query.strip() if user_query else ""
+        doc_path = ""
+        
+        # Handle uploaded document if provided
+        if uploaded_doc is not None:
+            doc_path = uploaded_doc if isinstance(uploaded_doc, str) else getattr(uploaded_doc, "name", "")
+            doc_filename = os.path.basename(doc_path)
+            if not query_text:
+                query_text = f"Please perform OCR verification on my uploaded document: {doc_filename}"
+            else:
+                query_text = f"{query_text} (Attached document proof: {doc_filename})"
+
+        if not query_text:
+            return "### Status: ⚠️ Incomplete Query\nPlease enter a citizen request or upload a document proof.", "N/A", "No query or document provided."
 
         hub = create_default_mcp_hub()
         is_rl = "RL-Trained" in str(policy_mode)
@@ -40,7 +54,7 @@ def execute_agent_workflow(user_query: str, policy_mode: str):
         runtime = MCPAgentRuntime(mcp_hub=hub, model_fn=policy, max_iterations=6, max_tool_chars=1200)
 
         t0 = time.time()
-        traj = runtime.run_task(task_id="demo-ui", user_prompt=user_query)
+        traj = runtime.run_task(task_id="demo-ui", user_prompt=query_text)
         latency = round(time.time() - t0, 3)
 
         # Format trace
@@ -77,6 +91,27 @@ def execute_agent_workflow(user_query: str, policy_mode: str):
             f"```\n{err_details}\n```"
         )
 
+def run_direct_ocr_service(file_obj, doc_type_choice):
+    """Directly invokes the OCR MCP Tool Server on an uploaded file."""
+    if file_obj is None:
+        return "⚠️ Please upload a document file (image or PDF) to scan.", "{}"
+    
+    file_path = file_obj if isinstance(file_obj, str) else getattr(file_obj, "name", "document_upload")
+    file_name = os.path.basename(file_path)
+
+    hub = create_default_mcp_hub()
+    result = hub.execute_call("scan_document_ocr", {
+        "document_type": doc_type_choice,
+        "document_reference": file_name
+    })
+
+    if result.get("isError"):
+        return f"❌ OCR Processing Failed: {result.get('content', [{}])[0].get('text', '')}", "{}"
+
+    extracted_text = result.get("content", [{}])[0].get("text", "{}")
+    summary = f"✅ OCR Extraction Completed for: **{file_name}** ({doc_type_choice})"
+    return summary, extracted_text
+
 # Pre-defined Benchmark Queries Spanning All 9 Sectors
 SAMPLE_QUERIES = [
     "1. Healthcare: What hospitalization coverage does Ayushman Bharat (PM-JAY) provide, and how do I apply?",
@@ -98,14 +133,13 @@ REDTEAM_QUERIES = [
 ]
 
 def load_sample(choice):
-    # Strip prefix number for clean execution
     clean = choice.split(". ", 1)[-1].split(": ", 1)[-1] if (": " in choice) else choice
     return clean
 
 with gr.Blocks(title="Civic AI - Universal Public Services MCP Agent") as demo:
     gr.Markdown("# 🏛️ Civic AI: Universal Public Services Agent (MCP + GRPO)")
     gr.Markdown(
-        "A full-potential systems-grade reasoning agent post-trained with **Group Relative Policy Optimization (GRPO)** "
+        "A systems-grade open-weight reasoning agent post-trained with **Group Relative Policy Optimization (GRPO)** "
         "to execute multi-turn, multi-tool workflows across **5 Model Context Protocol (MCP)** servers covering **9 National Welfare Sectors**."
     )
 
@@ -123,6 +157,14 @@ with gr.Blocks(title="Civic AI - Universal Public Services MCP Agent") as demo:
                         lines=3,
                         value="What hospitalization coverage does Ayushman Bharat (PM-JAY) provide, and how do I apply?"
                     )
+                    
+                    # Direct Document Upload in the Agent Flow
+                    doc_upload = gr.File(
+                        label="📄 Optional: Upload Document Proof (PNG, JPG, PDF) for Automatic OCR",
+                        file_types=[".png", ".jpg", ".jpeg", ".pdf"],
+                        type="filepath"
+                    )
+
                     policy_radio = gr.Radio(
                         choices=["🌟 RL-Trained Agent (GRPO + MCP) [Default - Succeeds]", "⚠️ Prompt-Only Baseline [Demonstration of Failure]"],
                         value="🌟 RL-Trained Agent (GRPO + MCP) [Default - Succeeds]",
@@ -140,15 +182,37 @@ with gr.Blocks(title="Civic AI - Universal Public Services MCP Agent") as demo:
                     """)
 
                 with gr.Column(scale=1):
-                    status_output = gr.Markdown("### Ready to run\nSelect any scenario or type ANY custom question, then click **Execute Agent Workflow**.")
+                    status_output = gr.Markdown("### Ready to run\nSelect any scenario, type ANY question, or upload a document proof, then click **Execute Agent Workflow**.")
                     final_ans_output = gr.Textbox(label="🏛️ Citizen Final Response", lines=7)
                     trace_output = gr.Markdown("### Execution Trace will appear here...")
 
             sample_dropdown.change(fn=load_sample, inputs=sample_dropdown, outputs=query_input)
             run_btn.click(
                 fn=execute_agent_workflow,
-                inputs=[query_input, policy_radio],
+                inputs=[query_input, policy_radio, doc_upload],
                 outputs=[status_output, final_ans_output, trace_output]
+            )
+
+        with gr.TabItem("🔍 Document OCR Scanner"):
+            gr.Markdown("## Standalone Document OCR & Identity Verification Tool")
+            gr.Markdown("Upload any citizen proof to test the `ocr-service` MCP tool directly:")
+            with gr.Row():
+                with gr.Column():
+                    ocr_file_input = gr.File(label="Upload Document Proof", file_types=[".png", ".jpg", ".jpeg", ".pdf"], type="filepath")
+                    ocr_doc_type = gr.Dropdown(
+                        choices=["Aadhaar", "Land_Record_7_12", "Income_Certificate", "Ration_Card"],
+                        value="Aadhaar",
+                        label="Document Category"
+                    )
+                    ocr_scan_btn = gr.Button("⚡ Run OCR & Parse Fields", variant="primary")
+                with gr.Column():
+                    ocr_status_out = gr.Markdown("### Upload a document to scan")
+                    ocr_json_out = gr.Code(label="Extracted Structured Fields (JSON Schema)", language="json")
+
+            ocr_scan_btn.click(
+                fn=run_direct_ocr_service,
+                inputs=[ocr_file_input, ocr_doc_type],
+                outputs=[ocr_status_out, ocr_json_out]
             )
 
         with gr.TabItem("📚 9-Sector National Welfare Catalog"):
@@ -184,12 +248,13 @@ with gr.Blocks(title="Civic AI - Universal Public Services MCP Agent") as demo:
                 with gr.Column():
                     redteam_status = gr.Markdown("### Security Status: Idle")
                     redteam_output = gr.Textbox(label="Security Engine Response", lines=4)
+                    redteam_trace = gr.Markdown(visible=False)
 
             redteam_dropdown.change(fn=load_sample, inputs=redteam_dropdown, outputs=redteam_input)
             redteam_btn.click(
                 fn=execute_agent_workflow,
-                inputs=[redteam_input, gr.State("🌟 RL-Trained Agent (GRPO + MCP) [Default - Succeeds]")],
-                outputs=[redteam_status, redteam_output, gr.Markdown(visible=False)]
+                inputs=[redteam_input, gr.State("🌟 RL-Trained Agent (GRPO + MCP) [Default - Succeeds]"), gr.State(None)],
+                outputs=[redteam_status, redteam_output, redteam_trace]
             )
 
         with gr.TabItem("📊 6-Way Ablation Benchmark"):

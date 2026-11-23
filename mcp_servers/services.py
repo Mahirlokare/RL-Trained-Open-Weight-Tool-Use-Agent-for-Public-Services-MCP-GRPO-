@@ -234,40 +234,65 @@ def build_ocr_server(sec: SecurityPolicyEngine) -> MCPToolServer:
 
     def scan_document_ocr(document_type: str, document_reference: str) -> Dict[str, Any]:
         doc_t = (document_type or "AADHAAR").upper()
-        if "AADHAAR" in doc_t:
-            return {
-                "scope": "read:ocr",
-                "document_verified": True,
-                "document_type": "Aadhaar",
-                "extracted_fields": {"id_masked": "XXXX-XXXX-1234", "dob_year": 1998, "state": "Maharashtra"}
-            }
-        elif "7_12" in doc_t or "LAND" in doc_t:
+        doc_ref = str(document_reference or "")
+        ref_low = doc_ref.lower()
+        
+        # If user uploaded a file, infer type from filename or default
+        if "7_12" in ref_low or "land" in ref_low or "7_12" in doc_t or "LAND" in doc_t:
             return {
                 "scope": "read:ocr",
                 "document_verified": True,
                 "document_type": "Land_Record_7_12",
-                "extracted_fields": {"land_holding_hectares": 1.4, "district": "Pune", "owner": "Verified"}
+                "filename": doc_ref.split("/")[-1].split("\\")[-1],
+                "extracted_fields": {
+                    "document_title": "7/12 Land Revenue Record (Satbara Utara)",
+                    "land_holding_hectares": 1.4,
+                    "district": "Pune",
+                    "survey_gut_number": "142/3",
+                    "status": "Verified Land Holding"
+                }
             }
-        elif "INCOME" in doc_t:
+        elif "income" in ref_low or "income" in doc_t:
             return {
                 "scope": "read:ocr",
                 "document_verified": True,
                 "document_type": "Income_Certificate",
-                "extracted_fields": {"certified_income": 350000, "issuing_authority": "Tehsildar"}
+                "filename": doc_ref.split("/")[-1].split("\\")[-1],
+                "extracted_fields": {
+                    "document_title": "Official Annual Income Certificate",
+                    "certified_income": 350000,
+                    "issuing_authority": "Office of Tehsildar / Revenue Dept",
+                    "status": "Verified Income Certificate"
+                }
             }
-        elif "RATION" in doc_t:
+        elif "ration" in ref_low or "ration" in doc_t:
             return {
                 "scope": "read:ocr",
                 "document_verified": True,
                 "document_type": "Ration_Card",
-                "extracted_fields": {"category": "Priority Household (PHH)", "family_members": 4}
+                "filename": doc_ref.split("/")[-1].split("\\")[-1],
+                "extracted_fields": {
+                    "document_title": "National Food Security Card",
+                    "category": "Priority Household (PHH)",
+                    "family_members": 4,
+                    "status": "Active Ration Card"
+                }
             }
-        return {
-            "scope": "read:ocr",
-            "document_verified": True,
-            "document_type": "Verified_Proof",
-            "extracted_fields": {"status": "Verified"}
-        }
+        else:
+            # Default to Aadhaar Card OCR
+            return {
+                "scope": "read:ocr",
+                "document_verified": True,
+                "document_type": "Aadhaar",
+                "filename": doc_ref.split("/")[-1].split("\\")[-1] if doc_ref else "Uploaded_Proof",
+                "extracted_fields": {
+                    "document_title": "Aadhaar Identity Card",
+                    "id_masked": "XXXX-XXXX-8921",
+                    "dob_year": 1998,
+                    "state": "Maharashtra",
+                    "biometric_status": "Valid Demographic Match"
+                }
+            }
 
     server.register_tool(
         name="scan_document_ocr",

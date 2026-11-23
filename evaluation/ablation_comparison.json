@@ -1,0 +1,56 @@
+{
+  "Prompt-Only": {
+    "policy": "Prompt-Only",
+    "tasks_evaluated": 5,
+    "pass_rate_pct": 0.0,
+    "tool_call_validity_pct": 0.0,
+    "avg_steps": 7.0,
+    "p95_latency_sec": 0.0,
+    "estimated_cost_per_1k_tasks_usd": 7.0
+  },
+  "Plain RAG": {
+    "policy": "Plain RAG",
+    "tasks_evaluated": 5,
+    "pass_rate_pct": 0.0,
+    "tool_call_validity_pct": 0.0,
+    "avg_steps": 2.0,
+    "p95_latency_sec": 0.0,
+    "estimated_cost_per_1k_tasks_usd": 2.0
+  },
+  "Best-of-N (N=4)": {
+    "policy": "Best-of-N",
+    "tasks_evaluated": 5,
+    "pass_rate_pct": 20.0,
+    "tool_call_validity_pct": 100.0,
+    "avg_steps": 4.0,
+    "p95_latency_sec": 0.0,
+    "estimated_cost_per_1k_tasks_usd": 4.0
+  },
+  "SFT Baseline": {
+    "policy": "SFT Baseline",
+    "tasks_evaluated": 5,
+    "pass_rate_pct": 40.0,
+    "tool_call_validity_pct": 100.0,
+    "avg_steps": 4.8,
+    "p95_latency_sec": 0.0,
+    "estimated_cost_per_1k_tasks_usd": 4.8
+  },
+  "DAPO": {
+    "policy": "DAPO",
+    "tasks_evaluated": 5,
+    "pass_rate_pct": 60.0,
+    "tool_call_validity_pct": 100.0,
+    "avg_steps": 5.2,
+    "p95_latency_sec": 0.001,
+    "estimated_cost_per_1k_tasks_usd": 5.2
+  },
+  "GRPO (Ours)": {
+    "policy": "GRPO (Ours)",
+    "tasks_evaluated": 5,
+    "pass_rate_pct": 60.0,
+    "tool_call_validity_pct": 100.0,
+    "avg_steps": 5.6,
+    "p95_latency_sec": 0.0,
+    "estimated_cost_per_1k_tasks_usd": 5.6
+  }
+}
