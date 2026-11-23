@@ -12,6 +12,7 @@ REGISTERED_TOOL_NAMES = [
     "search_schemes",
     "get_scheme_details",
     "verify_eligibility",
+    "scan_document_ocr",
     "check_center_slots",
     "book_appointment",
     "send_confirmation_sms"

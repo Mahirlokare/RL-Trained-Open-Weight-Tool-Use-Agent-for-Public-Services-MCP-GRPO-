@@ -11,7 +11,7 @@ Covers 9 Major National Welfare Sectors:
 8. Education & Scholarships (NSP_SCHOLARSHIP)
 9. Food Security & Ration (NFSA_RATION)
 """
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from mcp_servers.registry import MCPToolServer, MCPHub
 from mcp_servers.security import SecurityPolicyEngine
 
@@ -488,8 +488,9 @@ def build_notification_server(sec: SecurityPolicyEngine) -> MCPToolServer:
     )
     return server
 
-def create_default_mcp_hub() -> MCPHub:
-    sec = SecurityPolicyEngine()
+def create_default_mcp_hub(sec: Optional[SecurityPolicyEngine] = None) -> MCPHub:
+    if sec is None:
+        sec = SecurityPolicyEngine()
     hub = MCPHub()
     hub.add_server(build_scheme_server(sec))
     hub.add_server(build_ocr_server(sec))

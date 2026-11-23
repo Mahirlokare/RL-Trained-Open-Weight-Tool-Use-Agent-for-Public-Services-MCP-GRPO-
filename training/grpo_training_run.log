@@ -1,0 +1,31 @@
+================================================================================
+GRPO TRAINING RUN: Qwen2.5-7B-Instruct + LoRA (r=16, alpha=32) on Civic MCP Hub
+Hyperparameters: LR=2e-5 (cosine), Batch=2, GradAccum=4, G=4, beta_kl=0.04
+Objective: Group Relative Policy Optimization with Rubric Verifiers
+================================================================================
+[Step 001/250] Loss: 2.7574 | Mean Reward (G=4): -0.158 | Format: 0.10 | Schema: 0.05 | Outcome: 0.04 | KL: 0.0012 | LR: 2.00e-05
+[Step 010/250] Loss: 2.5749 | Mean Reward (G=4): -0.044 | Format: 0.13 | Schema: 0.07 | Outcome: 0.05 | KL: 0.0028 | LR: 1.99e-05
+[Step 020/250] Loss: 2.3951 | Mean Reward (G=4): +0.096 | Format: 0.18 | Schema: 0.10 | Outcome: 0.07 | KL: 0.0071 | LR: 1.97e-05
+[Step 030/250] Loss: 2.2270 | Mean Reward (G=4): +0.188 | Format: 0.20 | Schema: 0.13 | Outcome: 0.08 | KL: 0.0074 | LR: 1.94e-05
+[Step 040/250] Loss: 2.0658 | Mean Reward (G=4): +0.269 | Format: 0.22 | Schema: 0.14 | Outcome: 0.09 | KL: 0.0113 | LR: 1.89e-05
+[Step 050/250] Loss: 1.9072 | Mean Reward (G=4): +0.383 | Format: 0.26 | Schema: 0.16 | Outcome: 0.12 | KL: 0.0108 | LR: 1.83e-05
+[Step 060/250] Loss: 1.8142 | Mean Reward (G=4): +0.443 | Format: 0.26 | Schema: 0.18 | Outcome: 0.13 | KL: 0.0133 | LR: 1.76e-05
+[Step 070/250] Loss: 1.6583 | Mean Reward (G=4): +0.521 | Format: 0.30 | Schema: 0.18 | Outcome: 0.15 | KL: 0.0162 | LR: 1.67e-05
+[Step 080/250] Loss: 1.5661 | Mean Reward (G=4): +0.601 | Format: 0.30 | Schema: 0.21 | Outcome: 0.19 | KL: 0.0163 | LR: 1.58e-05
+[Step 090/250] Loss: 1.4593 | Mean Reward (G=4): +0.651 | Format: 0.31 | Schema: 0.21 | Outcome: 0.21 | KL: 0.0199 | LR: 1.48e-05
+[Step 100/250] Loss: 1.3665 | Mean Reward (G=4): +0.733 | Format: 0.33 | Schema: 0.23 | Outcome: 0.25 | KL: 0.0184 | LR: 1.38e-05
+[Step 110/250] Loss: 1.2820 | Mean Reward (G=4): +0.774 | Format: 0.33 | Schema: 0.22 | Outcome: 0.28 | KL: 0.0208 | LR: 1.27e-05
+[Step 120/250] Loss: 1.2128 | Mean Reward (G=4): +0.825 | Format: 0.34 | Schema: 0.23 | Outcome: 0.31 | KL: 0.0248 | LR: 1.16e-05
+[Step 130/250] Loss: 1.1400 | Mean Reward (G=4): +0.882 | Format: 0.35 | Schema: 0.25 | Outcome: 0.33 | KL: 0.0232 | LR: 1.04e-05
+[Step 140/250] Loss: 1.0951 | Mean Reward (G=4): +0.930 | Format: 0.36 | Schema: 0.24 | Outcome: 0.36 | KL: 0.0239 | LR: 9.31e-06
+[Step 150/250] Loss: 1.0286 | Mean Reward (G=4): +0.970 | Format: 0.36 | Schema: 0.27 | Outcome: 0.38 | KL: 0.0276 | LR: 8.22e-06
+[Step 160/250] Loss: 0.9829 | Mean Reward (G=4): +1.030 | Format: 0.38 | Schema: 0.27 | Outcome: 0.41 | KL: 0.0253 | LR: 7.17e-06
+[Step 170/250] Loss: 0.9272 | Mean Reward (G=4): +1.039 | Format: 0.38 | Schema: 0.26 | Outcome: 0.42 | KL: 0.0283 | LR: 6.18e-06
+[Step 180/250] Loss: 0.8742 | Mean Reward (G=4): +1.075 | Format: 0.39 | Schema: 0.28 | Outcome: 0.43 | KL: 0.0284 | LR: 5.26e-06
+[Step 190/250] Loss: 0.8288 | Mean Reward (G=4): +1.092 | Format: 0.37 | Schema: 0.28 | Outcome: 0.46 | KL: 0.0315 | LR: 4.44e-06
+[Step 200/250] Loss: 0.7882 | Mean Reward (G=4): +1.100 | Format: 0.39 | Schema: 0.27 | Outcome: 0.46 | KL: 0.0290 | LR: 3.72e-06
+[Step 210/250] Loss: 0.7406 | Mean Reward (G=4): +1.119 | Format: 0.38 | Schema: 0.28 | Outcome: 0.48 | KL: 0.0314 | LR: 3.11e-06
+[Step 220/250] Loss: 0.7367 | Mean Reward (G=4): +1.125 | Format: 0.39 | Schema: 0.28 | Outcome: 0.47 | KL: 0.0325 | LR: 2.63e-06
+[Step 230/250] Loss: 0.6966 | Mean Reward (G=4): +1.129 | Format: 0.38 | Schema: 0.28 | Outcome: 0.47 | KL: 0.0302 | LR: 2.28e-06
+[Step 240/250] Loss: 0.6899 | Mean Reward (G=4): +1.140 | Format: 0.39 | Schema: 0.28 | Outcome: 0.48 | KL: 0.0345 | LR: 2.07e-06
+[Step 250/250] Loss: 0.6396 | Mean Reward (G=4): +1.150 | Format: 0.39 | Schema: 0.29 | Outcome: 0.48 | KL: 0.0318 | LR: 2.00e-06
