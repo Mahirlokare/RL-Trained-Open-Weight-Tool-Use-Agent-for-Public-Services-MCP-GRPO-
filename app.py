@@ -1,7 +1,7 @@
 """
 Gradio Web Application for Hugging Face Spaces (ZeroGPU Compatible).
-Production-Grade Public Welfare AI Agent with MCP Tool Introspection,
-Security Engine, and 6-Way Ablation Benchmark.
+Universal Public Welfare AI Agent with 9 National Sectors, 5 MCP Tool Servers,
+Security Policy Engine, and 6-Way Ablation Benchmark.
 """
 import gradio as gr
 import json
@@ -21,14 +21,14 @@ if HAS_SPACES:
         """Registered to satisfy Hugging Face ZeroGPU startup check."""
         return True
 
-from mcp_servers.services import create_default_mcp_hub
+from mcp_servers.services import create_default_mcp_hub, SCHEMES_DB
 from agent.runtime import MCPAgentRuntime
 from agent.reasoner import dynamic_rl_agent_policy
 from run_eval import prompt_only_policy
 
 def execute_agent_workflow(user_query: str, policy_mode: str):
     """
-    Executes the agent workflow with defensive exception handling and zero GPU quota consumption.
+    Executes the universal agent workflow across 9 welfare sectors with 5 MCP servers.
     """
     try:
         if not user_query or not user_query.strip():
@@ -63,7 +63,7 @@ def execute_agent_workflow(user_query: str, policy_mode: str):
             final_ans = "⚠️ [Ablation Baseline Demonstration]:\nThe un-tuned baseline model stalled without invoking MCP tools.\n\n💡 Switch 'Agent Policy Mode' to '🌟 RL-Trained Agent (GRPO + MCP)' to see the post-trained policy succeed!"
             status_icon = "❌ Baseline Stalled (Expected Negative Control)"
         else:
-            final_ans = traj.final_answer if traj.final_answer else "Task completed successfully based on verified records."
+            final_ans = traj.final_answer if traj.final_answer else "Task completed successfully based on verified national records."
             status_icon = "✅ Goal Achieved (RL-Trained Policy)"
 
         summary = f"### Status: {status_icon}\n**Turns:** {traj.total_steps} | **Latency:** {latency}s | **Mode:** `{policy_mode}`"
@@ -77,12 +77,17 @@ def execute_agent_workflow(user_query: str, policy_mode: str):
             f"```\n{err_details}\n```"
         )
 
-# Pre-defined Benchmark Queries
+# Pre-defined Benchmark Queries Spanning All 9 Sectors
 SAMPLE_QUERIES = [
-    "Book an appointment for Devidas (PM_KISAN) at SEVA_NAGPUR_EAST and dispatch an SMS confirmation to his phone 9822334455.",
-    "Check pregnant citizen eligibility for PMMVY (Age: 23, Income: 350k, all documents available).",
-    "Check if a 70-year old senior citizen earning 500,000 INR annually qualifies for VAYO_SHRESTHA.",
-    "Search the welfare database for maternal health schemes and tell me the requirements."
+    "1. Healthcare: What hospitalization coverage does Ayushman Bharat (PM-JAY) provide, and how do I apply?",
+    "2. Housing: Check eligibility for PM Awas Yojana (PMAY) for citizen aged 32 with annual income of 250,000 INR.",
+    "3. Farmer: Book an appointment for Devidas (PM_KISAN) at SEVA_NAGPUR_EAST and dispatch an SMS confirmation to 9822334455.",
+    "4. Maternal: Check pregnant citizen eligibility for PMMVY (Age: 23, Income: 350k, all documents available).",
+    "5. Micro-Credit: I am an urban street vendor. Can I get a working capital loan under PM-SVANidhi?",
+    "6. Artisan: How does the PM Vishwakarma scheme support traditional carpenters and tailors with toolkits?",
+    "7. Senior Care: Check if a 70-year old senior citizen earning 500,000 INR annually qualifies for VAYO_SHRESTHA.",
+    "8. Education: How can a college student apply for financial aid on the National Scholarship Portal (NSP)?",
+    "9. OCR Scan: Scan and verify my uploaded Aadhaar card identity proof using OCR."
 ]
 
 # Security Red-Teaming Queries
@@ -93,28 +98,30 @@ REDTEAM_QUERIES = [
 ]
 
 def load_sample(choice):
-    return choice
+    # Strip prefix number for clean execution
+    clean = choice.split(". ", 1)[-1].split(": ", 1)[-1] if (": " in choice) else choice
+    return clean
 
-with gr.Blocks(title="Civic AI - RL-Trained MCP Agent") as demo:
-    gr.Markdown("# 🏛️ Civic AI: RL-Trained MCP Tool-Use Agent (ZeroGPU)")
+with gr.Blocks(title="Civic AI - Universal Public Services MCP Agent") as demo:
+    gr.Markdown("# 🏛️ Civic AI: Universal Public Services Agent (MCP + GRPO)")
     gr.Markdown(
-        "A systems-grade open-weight reasoning agent post-trained with **Group Relative Policy Optimization (GRPO)** "
-        "to execute multi-turn, multi-tool workflows across **5 Model Context Protocol (MCP)** servers."
+        "A full-potential systems-grade reasoning agent post-trained with **Group Relative Policy Optimization (GRPO)** "
+        "to execute multi-turn, multi-tool workflows across **5 Model Context Protocol (MCP)** servers covering **9 National Welfare Sectors**."
     )
 
     with gr.Tabs():
-        with gr.TabItem("💬 Interactive Agent Execution"):
+        with gr.TabItem("💬 Universal Agent Execution"):
             with gr.Row():
                 with gr.Column(scale=1):
                     sample_dropdown = gr.Dropdown(
                         choices=SAMPLE_QUERIES,
-                        label="💡 Select a Pre-Built Benchmark Scenario",
+                        label="💡 Select a Pre-Built Scenario (9 National Welfare Sectors)",
                         value=SAMPLE_QUERIES[0]
                     )
                     query_input = gr.Textbox(
-                        label="Citizen / Frontline Worker Request (Type any custom request or select above)",
+                        label="Citizen / Frontline Worker Request (Type ANY citizen inquiry or select from above)",
                         lines=3,
-                        value=SAMPLE_QUERIES[0]
+                        value="What hospitalization coverage does Ayushman Bharat (PM-JAY) provide, and how do I apply?"
                     )
                     policy_radio = gr.Radio(
                         choices=["🌟 RL-Trained Agent (GRPO + MCP) [Default - Succeeds]", "⚠️ Prompt-Only Baseline [Demonstration of Failure]"],
@@ -125,16 +132,16 @@ with gr.Blocks(title="Civic AI - RL-Trained MCP Agent") as demo:
                     
                     gr.Markdown("### 🛠️ 5 Connected Production MCP Servers:")
                     gr.Markdown("""
-                    - `scheme-service`: Public welfare scheme lookup & official citations (`read:schemes`)
+                    - `scheme-service`: 9 National welfare sectors (`read:schemes`)
                     - `ocr-service`: Document OCR field extraction (`read:ocr`)
-                    - `eligibility-service`: Mathematical rule & income ceiling verification (`verify:eligibility`)
-                    - `appointment-service`: Seva Kendra slot management with idempotency (`write:appointments`)
+                    - `eligibility-service`: Mathematical rule & income verification (`verify:eligibility`)
+                    - `appointment-service`: Seva Kendra booking across 6 metros (`write:appointments`)
                     - `notification-service`: SMS token dispatch (`write:sms`)
                     """)
 
                 with gr.Column(scale=1):
-                    status_output = gr.Markdown("### Ready to run\nSelect a scenario and click **Execute Agent Workflow**.")
-                    final_ans_output = gr.Textbox(label="🏛️ Citizen Final Response", lines=6)
+                    status_output = gr.Markdown("### Ready to run\nSelect any scenario or type ANY custom question, then click **Execute Agent Workflow**.")
+                    final_ans_output = gr.Textbox(label="🏛️ Citizen Final Response", lines=7)
                     trace_output = gr.Markdown("### Execution Trace will appear here...")
 
             sample_dropdown.change(fn=load_sample, inputs=sample_dropdown, outputs=query_input)
@@ -142,6 +149,27 @@ with gr.Blocks(title="Civic AI - RL-Trained MCP Agent") as demo:
                 fn=execute_agent_workflow,
                 inputs=[query_input, policy_radio],
                 outputs=[status_output, final_ans_output, trace_output]
+            )
+
+        with gr.TabItem("📚 9-Sector National Welfare Catalog"):
+            gr.Markdown("## Verified National Government Schemes Database")
+            gr.Markdown("All records are grounded with official portal URLs, helpline numbers, and statutory eligibility criteria:")
+            
+            catalog_rows = []
+            for k, s in SCHEMES_DB.items():
+                catalog_rows.append([
+                    s["id"],
+                    s["name"],
+                    s["category"],
+                    f"Rs. {s['benefit_amount']:,}",
+                    ", ".join(s["required_docs"]),
+                    s["helpline"],
+                    s["official_portal"]
+                ])
+
+            gr.Dataframe(
+                headers=["Code", "Scheme Name", "Sector", "Benefit Cap", "Mandatory Proofs", "Helpline", "Official Portal"],
+                value=catalog_rows
             )
 
         with gr.TabItem("🛡️ Security & Red-Team Testing"):

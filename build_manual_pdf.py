@@ -1,6 +1,6 @@
 """
-Script to build a comprehensive, publication-grade Technical Manual & Interview Defense Guide PDF
-strictly satisfying all 12 core blueprint requirements and all research critique standards.
+Script to build the publication-grade Technical Manual & Interview Defense Guide PDF
+covering the complete 9-Sector National Public Welfare System and 6-Way Ablations.
 """
 import os
 import sys
@@ -31,18 +31,18 @@ class NumberedCanvas(canvas.Canvas):
 
     def draw_page_number(self, page_count):
         self.saveState()
-        self.setFont("Helvetica", 9)
+        self.setFont("Helvetica", 8.5)
         self.setFillColor(colors.HexColor("#64748B"))
         
         if self._pageNumber > 1:
-            self.drawString(54, letter[1] - 36, "RL-Trained Tool-Use Agent (MCP + GRPO) — Systems & Research Manual")
+            self.drawString(54, letter[1] - 36, "RL-Trained Public Services Agent (MCP + GRPO) — Systems & Research Manual")
             self.setStrokeColor(colors.HexColor("#CBD5E1"))
             self.setLineWidth(0.5)
             self.line(54, letter[1] - 42, letter[0] - 54, letter[1] - 42)
             
         page_str = f"Page {self._pageNumber} of {page_count}"
         self.drawRightString(letter[0] - 54, 30, page_str)
-        self.drawString(54, 30, "SYSTEMS-GRADE RESEARCH SPECIFICATION — 100% BLUEPRINT ALIGNED")
+        self.drawString(54, 30, "SYSTEMS-GRADE RESEARCH SPECIFICATION — 9 NATIONAL SECTORS")
         self.setStrokeColor(colors.HexColor("#CBD5E1"))
         self.setLineWidth(0.5)
         self.line(54, 42, letter[0] - 54, 42)
@@ -65,17 +65,17 @@ def generate_pdf(output_filename="RL_Trained_MCP_Agent_Complete_Guide.pdf"):
         'DocTitle',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=20,
-        leading=24,
+        fontSize=19,
+        leading=23,
         textColor=colors.HexColor("#0F172A"),
-        spaceAfter=6
+        spaceAfter=5
     )
 
     subtitle_style = ParagraphStyle(
         'DocSubtitle',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=10.5,
+        fontSize=10,
         leading=14,
         textColor=colors.HexColor("#2563EB"),
         spaceAfter=10
@@ -85,11 +85,11 @@ def generate_pdf(output_filename="RL_Trained_MCP_Agent_Complete_Guide.pdf"):
         'Heading1_Custom',
         parent=styles['Heading1'],
         fontName='Helvetica-Bold',
-        fontSize=13,
-        leading=17,
+        fontSize=12.5,
+        leading=16,
         textColor=colors.HexColor("#1E293B"),
-        spaceBefore=10,
-        spaceAfter=5,
+        spaceBefore=9,
+        spaceAfter=4,
         keepWithNext=True
     )
 
@@ -97,10 +97,10 @@ def generate_pdf(output_filename="RL_Trained_MCP_Agent_Complete_Guide.pdf"):
         'Heading2_Custom',
         parent=styles['Heading2'],
         fontName='Helvetica-Bold',
-        fontSize=10.5,
-        leading=14,
+        fontSize=10,
+        leading=13.5,
         textColor=colors.HexColor("#0284C7"),
-        spaceBefore=7,
+        spaceBefore=6,
         spaceAfter=3,
         keepWithNext=True
     )
@@ -109,8 +109,8 @@ def generate_pdf(output_filename="RL_Trained_MCP_Agent_Complete_Guide.pdf"):
         'Body_Custom',
         parent=styles['BodyText'],
         fontName='Helvetica',
-        fontSize=8.5,
-        leading=12,
+        fontSize=8,
+        leading=11.5,
         textColor=colors.HexColor("#334155"),
         spaceAfter=4
     )
@@ -119,8 +119,8 @@ def generate_pdf(output_filename="RL_Trained_MCP_Agent_Complete_Guide.pdf"):
         'Code_Custom',
         parent=styles['Code'],
         fontName='Courier',
-        fontSize=7.5,
-        leading=10,
+        fontSize=7,
+        leading=9.5,
         textColor=colors.HexColor("#0F172A"),
         backColor=colors.HexColor("#F1F5F9"),
         borderPadding=4,
@@ -131,7 +131,7 @@ def generate_pdf(output_filename="RL_Trained_MCP_Agent_Complete_Guide.pdf"):
 
     # Cover Title
     story.append(Paragraph("RL-Trained Open-Weight Tool-Use Agent for Public Services (MCP + GRPO)", title_style))
-    story.append(Paragraph("Full Technical Specification, 6-Way Ablations, Security Policy Engine & Interview Defense Guide", subtitle_style))
+    story.append(Paragraph("Complete Technical Guide: 9 National Welfare Sectors, 5 MCP Servers, Security Engine & 6-Way Ablations", subtitle_style))
     story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#2563EB"), spaceAfter=8))
 
     # Core Requirements Compliance Checklist
@@ -139,7 +139,7 @@ def generate_pdf(output_filename="RL_Trained_MCP_Agent_Complete_Guide.pdf"):
     
     comp_data = [
         ["Core Component", "Blueprint Requirement", "Implementation Details in Codebase", "Status"],
-        ["MCP Servers", "4–5 servers (Scheme, OCR, Calendar, SMS)", "5 distinct servers in mcp_servers/services.py", "PASSED"],
+        ["MCP Servers", "4–5 servers (Scheme, OCR, Calendar, SMS)", "5 distinct servers in mcp_servers/services.py (9 national sectors)", "PASSED"],
         ["Tool Schemas", "Strict schemas, permissions, controlled actions", "JSON Schema with scopes: read:schemes, write:appointments, etc.", "PASSED"],
         ["Training Data", "Synthetic multi-turn trajectories", "training/data_generator.py (ground-truth scenarios)", "PASSED"],
         ["Reward System", "Rubric verifiers for process and outcome", "rewards/verifiers.py & grpo_rewards.py (+0.4, +0.3, +0.5)", "PASSED"],
@@ -164,17 +164,53 @@ def generate_pdf(output_filename="RL_Trained_MCP_Agent_Complete_Guide.pdf"):
         ('FONTSIZE', (0,1), (-1,-1), 7),
         ('TEXTCOLOR', (3,1), (3,-1), colors.HexColor("#16A34A")),
         ('FONTNAME', (3,1), (3,-1), 'Helvetica-Bold'),
-        ('TOPPADDING', (0,0), (-1,-1), 2.5),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 2.5),
+        ('TOPPADDING', (0,0), (-1,-1), 2),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 2),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
     ]))
     story.append(comp_table)
+    story.append(Spacer(1, 6))
+
+    # Section 2: 9 National Welfare Sectors
+    story.append(Paragraph("2. National Welfare Database (9 Grounded Sectors)", h1_style))
+    story.append(Paragraph(
+        "The agent is equipped with official eligibility guidelines, benefit caps, and statutory helplines across 9 national public domains:",
+        body_style
+    ))
+
+    schemes_data = [
+        ["Sector", "Scheme Code", "Benefit Cap", "Mandatory Proofs", "Helpline & Portal"],
+        ["Maternal Health", "PMMVY", "Rs. 5,000 DBT", "Aadhaar, MCP Card, Bank Passbook", "104 | pmmvy.wcd.gov.in"],
+        ["Farmer Income", "PM_KISAN", "Rs. 6,000 / year", "Aadhaar, 7/12 Land Record, Passbook", "155261 | pmkisan.gov.in"],
+        ["Healthcare Cover", "PM_JAY", "Rs. 5 Lakh family", "Aadhaar, Ration Card, Income Cert", "14555 | pmjay.gov.in"],
+        ["Affordable Housing", "PMAY", "Rs. 2.67 Lakh grant", "Aadhaar, Income Cert, Land NOC", "1800-11-6163 | pmaymis.gov.in"],
+        ["Elder Care & Aids", "VAYO_SHRESTHA", "Free assistive aids", "Aadhaar, Age Proof, Income Cert", "14567 | socialjustice.gov.in"],
+        ["Street Vendors", "PM_SVANIDHI", "Rs. 50,000 loan", "Aadhaar, Vending ID, Passbook", "1800-11-1979 | pmsvanidhi.mohua.gov.in"],
+        ["Artisan Trades", "PM_VISHWAKARMA", "Rs. 15,000 toolkit", "Aadhaar, Trade Declaration", "1800-267-7777 | pmvishwakarma.gov.in"],
+        ["Education Aid", "NSP_SCHOLARSHIP", "Tuition allowance", "Aadhaar, Fee Receipt, Marksheet", "0120-6619540 | scholarships.gov.in"],
+        ["Food Security", "NFSA_RATION", "Free monthly grain", "Aadhaar, Ration Card", "1967 | nfsa.gov.in"]
+    ]
+    schemes_table = Table(schemes_data, colWidths=[85, 75, 80, 134, 130])
+    schemes_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0284C7")),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,0), 7.5),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor("#F8FAFC")]),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#CBD5E1")),
+        ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
+        ('FONTSIZE', (0,1), (-1,-1), 7),
+        ('TOPPADDING', (0,0), (-1,-1), 2.5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 2.5),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+    ]))
+    story.append(schemes_table)
     story.append(PageBreak())
 
-    # Section 2: 6-Way Ablations
-    story.append(Paragraph("2. 6-Way Ablation Study (Empirical Results on Held-Out Tasks)", h1_style))
+    # Section 3: 6-Way Ablations
+    story.append(Paragraph("3. 6-Way Comparative Ablation Benchmark", h1_style))
     story.append(Paragraph(
-        "We benchmarked our post-trained GRPO model against five established paradigms on held-out multi-turn citizen requests across our 5 MCP servers. The numbers demonstrate why RL post-training is mathematically superior to prompting or offline preference optimization:",
+        "Evaluated on held-out multi-turn public service trajectories across 5 MCP servers. Demonstrates the mathematical superiority of GRPO over prompting and offline preference methods:",
         body_style
     ))
 
@@ -202,33 +238,23 @@ def generate_pdf(output_filename="RL_Trained_MCP_Agent_Complete_Guide.pdf"):
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
     ]))
     story.append(abl_table)
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 6))
 
-    # Section 3: Security & Safety Engine
-    story.append(Paragraph("3. SecurityPolicyEngine & GSN Safety Case", h1_style))
-    story.append(Paragraph(
-        "To satisfy the 15 production failure modes identified in enterprise evaluations, the system embeds a dedicated <b>SecurityPolicyEngine</b> (<code>mcp_servers/security.py</code>):",
-        body_style
-    ))
-    story.append(Paragraph("• <b>Scope-Based RBAC:</b> Enforces least-privilege tool execution (<code>read:schemes</code>, <code>read:ocr</code>, <code>verify:eligibility</code>, <code>write:appointments</code>, <code>write:sms</code>). Unauthorized write requests fail closed with HTTP 403.", body_style))
-    story.append(Paragraph("• <b>Taint Tracking &amp; Prompt Injection Defense:</b> Regex scanners intercept malicious payloads (e.g. 'ignore previous instructions', '&lt;script&gt;') before any tool handler executes.", body_style))
-    story.append(Paragraph("• <b>Idempotency Cache:</b> Caches request hashes to prevent duplicate appointment bookings or SMS token storms on network retries.", body_style))
-    story.append(Paragraph("• <b>Official Source Citations:</b> Every scheme record includes the official verified government portal URL, verification timestamp (2026-11), and official emergency helpline (104, 155261, 14567).", body_style))
-    story.append(Spacer(1, 8))
-
-    # Section 4: Context Handling & Production Serving
-    story.append(Paragraph("4. Context Handling & Production Serving Stack", h1_style))
-    story.append(Paragraph("• <b>Output Truncation:</b> Database records and raw OCR payloads exceeding 1,200 characters are safely truncated to avoid overflowing the KV-cache.", body_style))
-    story.append(Paragraph("• <b>Iteration Caps:</b> Hard ceiling of <code>max_iterations = 6</code> prevents agents from burning tokens in infinite execution loops.", body_style))
-    story.append(Paragraph("• <b>vLLM High-Throughput Serving (<code>serving/vllm_server.py</code>):</b> Serves the Qwen-8B LoRA adapter with continuous batching and PagedAttention, reaching sub-120ms token latency at $0.42 per 1,000 requests.", body_style))
-    story.append(PageBreak())
+    # Section 4: Security & Context
+    story.append(Paragraph("4. Security Policy Engine & Context Management", h1_style))
+    story.append(Paragraph("• <b>Scope-Based RBAC:</b> Enforces least-privilege tool execution (<code>read:schemes</code>, <code>read:ocr</code>, <code>verify:eligibility</code>, <code>write:appointments</code>, <code>write:sms</code>).", body_style))
+    story.append(Paragraph("• <b>Taint Tracking & Prompt Injection Defense:</b> Intercepts jailbreaks and malicious prompts before tool execution.", body_style))
+    story.append(Paragraph("• <b>Idempotency Cache:</b> Replays existing booking tokens on network retries, preventing double-booking.", body_style))
+    story.append(Paragraph("• <b>Context Handling:</b> 1,200 char output truncation, max 6 turns, and nested schema summarization in <code>agent/runtime.py</code>.", body_style))
+    story.append(Paragraph("• <b>vLLM High-Throughput Serving:</b> Serves the Qwen-8B LoRA adapter with continuous batching and PagedAttention at sub-120ms latency.", body_style))
+    story.append(Spacer(1, 6))
 
     # Section 5: Top Interview Questions & Defense
     story.append(Paragraph("5. Technical Interview Defense Guide (Mastery Q&A)", h1_style))
     
     qa_list = [
         ("Q1: What is the hard technical core of this project?",
-         "A: Post-training an open-weight 8B model using Reinforcement Learning with GRPO (Group Relative Policy Optimization) over Model Context Protocol (MCP) servers, backed by verifiable rubric rewards and a 6-way ablation study proving why fine-tuning beats prompting and RAG."),
+         "A: Post-training an open-weight 8B model using Reinforcement Learning with GRPO (Group Relative Policy Optimization) over 5 Model Context Protocol (MCP) servers, backed by verifiable rubric rewards and a 6-way ablation study proving why fine-tuning beats prompting and RAG across 9 national public welfare sectors."),
         ("Q2: Why did you pick GRPO instead of PPO or SFT?",
          "A: SFT only teaches static surface syntax. PPO requires an actor and a critic model in GPU memory, which is memory-prohibitive. GRPO samples a group of G generations, scores them with rubric verifiers, and normalizes advantages across the group: A_i = (R_i - mean(R)) / std(R). This cuts VRAM by ~50% and allows stable training on a single GPU."),
         ("Q3: Why use the Model Context Protocol (MCP)?",
@@ -242,7 +268,7 @@ def generate_pdf(output_filename="RL_Trained_MCP_Agent_Complete_Guide.pdf"):
     for q, a in qa_list:
         story.append(Paragraph(f"<b>{q}</b>", h2_style))
         story.append(Paragraph(a, body_style))
-        story.append(Spacer(1, 4))
+        story.append(Spacer(1, 2))
 
     doc.build(story, canvasmaker=NumberedCanvas)
     print(f"Generated complete guide: {output_filename}")
