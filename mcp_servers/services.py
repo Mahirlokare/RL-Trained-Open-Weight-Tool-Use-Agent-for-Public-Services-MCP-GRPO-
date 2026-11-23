@@ -255,8 +255,13 @@ def build_scheme_server(sec: SecurityPolicyEngine) -> MCPToolServer:
                 if not category or category.lower() in s["category"].lower():
                     results.append(s)
         if not results:
-            # Fallback to top matches
-            results = list(SCHEMES_DB.values())[:3]
+            return {
+                "scope": "read:schemes",
+                "query": query,
+                "total_matches": 0,
+                "schemes": [],
+                "message": f"No government schemes matched query '{query}'. Try broader terms like 'farmer', 'health', 'housing', or 'maternal'."
+            }
         return {
             "scope": "read:schemes",
             "query": query,
@@ -265,14 +270,18 @@ def build_scheme_server(sec: SecurityPolicyEngine) -> MCPToolServer:
         }
 
     def get_scheme_details(scheme_id: str) -> Dict[str, Any]:
-        sid = (scheme_id or "PMMVY").upper()
+        sid = (scheme_id or "").upper().strip()
         if sid in SCHEMES_DB:
             return {"scope": "read:schemes", "found": True, "scheme": SCHEMES_DB[sid]}
         # Fuzzy match
         for k, v in SCHEMES_DB.items():
             if sid in k or k in sid:
                 return {"scope": "read:schemes", "found": True, "scheme": v}
-        return {"scope": "read:schemes", "found": True, "scheme": SCHEMES_DB["PMMVY"]}
+        return {
+            "scope": "read:schemes", 
+            "found": False, 
+            "message": f"Scheme identifier '{scheme_id}' was not found in the verified database. Available scheme codes: {list(SCHEMES_DB.keys())}"
+        }
 
     server.register_tool(
         name="search_schemes",
@@ -428,7 +437,7 @@ def build_ocr_server(sec: SecurityPolicyEngine) -> MCPToolServer:
             dob_match = re.search(r'\b(19\d{2}|20[0-2]\d)\b', combined_search_text)
             dob_year = int(dob_match.group(1)) if dob_match else 1998
 
-            # Check for authentic Aadhaar vs fake / invalid UID
+            # Check for authentic Aadhaar vs invalid checksum or non-compliant UID
             if not detected_uid or is_filename_flagged_fake or is_dummy_or_fake_uid(detected_uid) or not validate_verhoeff(detected_uid):
                 last_4 = detected_uid[-4:] if detected_uid else "INVALID"
                 reasons = []
@@ -438,38 +447,39 @@ def build_ocr_server(sec: SecurityPolicyEngine) -> MCPToolServer:
                     reasons.append(f"Aadhaar UID ending in '{last_4}' failed official UIDAI Verhoeff dihedral D5 mathematical checksum")
                     reasons.append("Synthetic, unallocated, or test number sequence detected")
                 if is_filename_flagged_fake:
-                    reasons.append("Uploaded file name or metadata flagged as synthetic test/fake proof")
+                    reasons.append("Uploaded file name or metadata flagged as synthetic test proof")
 
                 return {
                     "scope": "read:ocr",
                     "document_verified": False,
                     "document_type": "Aadhaar",
                     "filename": filename,
-                    "verification_status": "REJECTED: Fraud / Fake Identity Proof Detected",
+                    "verification_status": "CHECKSUM_FAILED (Non-Compliant Checksum Digit)",
+                    "notice": "Notice: Mathematical checksum validation checks numerical digit structure. It does not replace official UIDAI biometric verification.",
                     "extracted_fields": {
-                        "document_title": "Aadhaar Identity Card (Rejected)",
+                        "document_title": "Aadhaar Identity Card (Checksum Check)",
                         "id_detected": f"XXXX-XXXX-{last_4}" if last_4 != "INVALID" else "NOT_DETECTED",
-                        "raw_id_tested": detected_uid or "None",
                         "verhoeff_checksum": "FAILED (Invalid Checksum)",
-                        "status": "REJECTED - Non-Compliant UIDAI Number",
+                        "status": "NON_COMPLIANT_CHECKSUM",
                         "rejection_reasons": reasons
                     }
                 }
 
-            # Authentic Aadhaar ID with Valid Verhoeff Checksum
+            # Authentic Aadhaar ID format with Valid Verhoeff Checksum
             return {
                 "scope": "read:ocr",
                 "document_verified": True,
                 "document_type": "Aadhaar",
                 "filename": filename,
-                "verification_status": "VERIFIED: Authentic Aadhaar ID",
+                "verification_status": "CHECKSUM_PASSED (Valid Dihedral D5 Format)",
+                "notice": "Notice: Mathematical checksum passed. Official identity verification requires biometric/OTP authentication on UIDAI portal.",
                 "extracted_fields": {
                     "document_title": "Aadhaar Identity Card",
                     "id_masked": f"XXXX-XXXX-{detected_uid[-4:]}",
                     "dob_year": dob_year,
                     "state": "Maharashtra",
                     "verhoeff_checksum": "PASSED (Valid Dihedral D5 Checksum)",
-                    "status": "Verified Identity Match"
+                    "status": "Valid Number Format (Biometric Verification Required at Kendra)"
                 }
             }
 
@@ -493,11 +503,40 @@ def build_ocr_server(sec: SecurityPolicyEngine) -> MCPToolServer:
 def build_eligibility_server(sec: SecurityPolicyEngine) -> MCPToolServer:
     server = MCPToolServer("eligibility-service", "Citizen document verification and eligibility checking", sec)
 
-    def verify_eligibility(scheme_id: str, citizen_age: int, annual_income: float, documents_available: List[str]) -> Dict[str, Any]:
-        sid = (scheme_id or "PMMVY").upper()
-        if sid not in SCHEMES_DB:
-            sid = "PMMVY"
+    def verify_eligibility(
+        scheme_id: str, 
+        citizen_age: Optional[int] = None, 
+        annual_income: Optional[float] = None, 
+        documents_available: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        sid = (scheme_id or "").upper().strip()
+        if not sid or sid not in SCHEMES_DB:
+            return {
+                "scope": "verify:eligibility",
+                "eligible": False,
+                "error": f"Invalid scheme identifier '{scheme_id}'. Please select from valid schemes: {list(SCHEMES_DB.keys())}"
+            }
         scheme = SCHEMES_DB[sid]
+
+        # Check for missing demographic fields (Do NOT assume fake defaults!)
+        missing_demographics = []
+        if citizen_age is None:
+            missing_demographics.append("citizen_age (Age in years is mandatory for criteria evaluation)")
+        if annual_income is None:
+            missing_demographics.append("annual_income (Annual household income is required to verify statutory income ceiling)")
+
+        if missing_demographics:
+            return {
+                "scope": "verify:eligibility",
+                "eligible": None,
+                "status": "INCOMPLETE_INFORMATION",
+                "scheme_id": sid,
+                "scheme_name": scheme["name"],
+                "missing_required_fields": missing_demographics,
+                "message": f"Cannot evaluate eligibility for {scheme['name']} without missing citizen information: {'; '.join(missing_demographics)}. Please prompt the citizen to provide these details.",
+                "official_portal": scheme["official_portal"],
+                "helpline": scheme.get("helpline", "104")
+            }
         
         # Age constraints
         if scheme.get("min_age") and citizen_age < scheme["min_age"]:
@@ -534,10 +573,10 @@ def build_eligibility_server(sec: SecurityPolicyEngine) -> MCPToolServer:
         if missing:
             return {
                 "scope": "verify:eligibility",
-                "eligible": True,
+                "eligible": "Potentially Eligible",
                 "documentation_ready": False,
                 "missing_documents": missing,
-                "message": f"Eligible in principle, but missing mandatory proofs: {', '.join(missing)}",
+                "message": f"Citizen meets age and income criteria, but lacks mandatory proof(s): {', '.join(missing)}. All listed documents must be brought to the Seva Kendra.",
                 "official_portal": scheme["official_portal"],
                 "helpline": scheme.get("helpline", "104")
             }
@@ -551,7 +590,8 @@ def build_eligibility_server(sec: SecurityPolicyEngine) -> MCPToolServer:
             "benefit_type": scheme.get("benefit_type", "Direct Assistance"),
             "official_portal": scheme["official_portal"],
             "helpline": scheme.get("helpline", "104"),
-            "message": "Citizen fulfills all criteria. Application is ready for Seva Kendra booking."
+            "message": "Citizen fulfills statutory demographic and documentation criteria. Application is eligible for Seva Kendra booking.",
+            "disclaimer": "Official eligibility determination is subject to physical verification at designated Seva Kendra."
         }
 
     server.register_tool(
@@ -583,23 +623,59 @@ def build_appointment_server(sec: SecurityPolicyEngine) -> MCPToolServer:
     def check_center_slots(center_id: str) -> Dict[str, Any]:
         cid = (center_id or "SEVA_PUNE_NORTH").upper()
         slots = CENTERS_REGISTRY.get(cid, ["2026-12-01 10:00 AM", "2026-12-02 02:00 PM"])
-        return {"scope": "read:appointments", "center_id": cid, "available_slots": slots}
+        return {
+            "scope": "read:appointments", 
+            "center_id": cid, 
+            "available_slots": slots,
+            "environment": "DEMO_SEVA_KENDRA_REGISTRY"
+        }
 
-    def book_appointment(center_id: str, slot_time: str, citizen_name: str, scheme_id: str) -> Dict[str, Any]:
-        cid = (center_id or "SEVA_PUNE_NORTH").upper()
+    def book_appointment(
+        center_id: str, 
+        slot_time: str, 
+        citizen_name: str, 
+        scheme_id: str,
+        confirmation_token: Optional[str] = None
+    ) -> Dict[str, Any]:
+        cid = (center_id or "SEVA_PUNE_NORTH").upper().strip()
         slot = slot_time or "2026-12-01 10:00 AM"
         name = citizen_name or "Citizen"
         sch = scheme_id or "PM_KISAN"
         booking_ref = f"BK-{cid[:4]}-{abs(hash(name + slot)) % 100000}"
-        
+
+        # If confirmation token not provided, issue hold with confirmation token
+        if not confirmation_token:
+            preview = {
+                "center_id": cid,
+                "slot_time": slot,
+                "citizen_name": sec.mask_pii_string(name),
+                "scheme_id": sch,
+                "hold_reference": booking_ref
+            }
+            token = sec.issue_confirmation_token("book_appointment", preview)
+            return {
+                "scope": "write:appointments",
+                "status": "REQUIRES_CONFIRMATION",
+                "confirmation_required": True,
+                "confirmation_token": token,
+                "booking_reference": booking_ref,
+                "booking_preview": preview,
+                "notice": "DEMO ENVIRONMENT: Slot reservation hold created. Please confirm with confirmation token to finalize."
+            }
+
+        # Booking confirmed with token
+        clean_name = sec.mask_pii_string(name)
         return {
             "scope": "write:appointments",
+            "status": "CONFIRMED",
             "success": True,
+            "confirmation_token": confirmation_token,
             "booking_reference": booking_ref,
             "center": cid,
             "slot_time": slot,
-            "citizen_name": name,
-            "scheme_id": sch
+            "citizen_name": clean_name,
+            "scheme_id": sch,
+            "notice": "DEMO ENVIRONMENT: Slot successfully reserved at simulated Kendra."
         }
 
     server.register_tool(
@@ -618,14 +694,15 @@ def build_appointment_server(sec: SecurityPolicyEngine) -> MCPToolServer:
 
     server.register_tool(
         name="book_appointment",
-        description="Book a verified verification slot at a Seva Kendra center",
+        description="Book a verified verification slot at a Seva Kendra center (requires citizen confirmation token)",
         input_schema={
             "type": "object",
             "properties": {
                 "center_id": {"type": "string", "description": "Service center ID"},
                 "slot_time": {"type": "string", "description": "Chosen slot time"},
                 "citizen_name": {"type": "string", "description": "Full citizen name"},
-                "scheme_id": {"type": "string", "description": "Scheme code"}
+                "scheme_id": {"type": "string", "description": "Scheme code"},
+                "confirmation_token": {"type": "string", "description": "Optional citizen confirmation token issued by previous step"}
             },
             "required": ["center_id", "slot_time", "citizen_name", "scheme_id"]
         },
@@ -638,27 +715,83 @@ def build_appointment_server(sec: SecurityPolicyEngine) -> MCPToolServer:
 def build_notification_server(sec: SecurityPolicyEngine) -> MCPToolServer:
     server = MCPToolServer("notification-service", "Citizen SMS and alert dispatch", sec)
 
-    def send_confirmation_sms(phone_number: str, booking_reference: str, message: str) -> Dict[str, Any]:
-        clean_phone = (phone_number or "9822334455").replace("+", "").replace("-", "")
+    def send_confirmation_sms(
+        phone_number: str, 
+        booking_reference: str, 
+        message: str,
+        citizen_consent: bool = True
+    ) -> Dict[str, Any]:
+        if not citizen_consent:
+            return {
+                "scope": "write:sms",
+                "status": "REQUIRES_CONSENT",
+                "sent": False,
+                "message": "Citizen consent is mandatory before transmitting SMS notifications."
+            }
+
+        clean_phone = (phone_number or "").replace("+", "").replace("-", "").strip()
         b_ref = booking_reference or "BK-SEVA-10000"
+        masked_phone = sec.mask_pii_string(clean_phone) if clean_phone else "UNSPECIFIED"
+
+        # Check for live Twilio credentials in environment
+        twilio_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+        twilio_token = os.environ.get("TWILIO_AUTH_TOKEN")
+        twilio_from = os.environ.get("TWILIO_PHONE_NUMBER")
+
+        if twilio_sid and twilio_token and twilio_from:
+            try:
+                # Live carrier transmission via Twilio API
+                import urllib.request
+                import urllib.parse
+                import base64
+
+                twilio_url = f"https://api.twilio.com/2010-04-01/Accounts/{twilio_sid}/Messages.json"
+                form_data = urllib.parse.urlencode({
+                    "From": twilio_from,
+                    "To": clean_phone,
+                    "Body": message
+                }).encode("utf-8")
+                
+                auth_header = "Basic " + base64.b64encode(f"{twilio_sid}:{twilio_token}".encode()).decode()
+                req = urllib.request.Request(twilio_url, data=form_data, headers={"Authorization": auth_header})
+                with urllib.request.urlopen(req, timeout=10.0) as resp:
+                    res_data = json.loads(resp.read().decode())
+                    return {
+                        "scope": "write:sms",
+                        "sent": True,
+                        "delivered_to_carrier": True,
+                        "gateway_mode": "LIVE_TELECOM_CARRIER (Twilio)",
+                        "dispatch_id": res_data.get("sid", "LIVE-SMS"),
+                        "recipient": masked_phone,
+                        "booking_reference": b_ref,
+                        "status": "DELIVERED_TO_CARRIER"
+                    }
+            except Exception as e:
+                logger.warning(f"Live SMS transmission failed: {e}")
+
+        # Local Gateway Simulator (Honest Demo Mode)
         return {
             "scope": "write:sms",
             "sent": True,
-            "dispatch_id": f"SMS-TX-{abs(hash(b_ref)) % 999999}",
-            "recipient": clean_phone,
+            "delivered_to_carrier": False,
+            "gateway_mode": "LOCAL_GATEWAY_SIMULATOR (DEMO MODE)",
+            "dispatch_id": f"SMS-LOC-{abs(hash(b_ref + clean_phone)) % 999999}",
+            "recipient": masked_phone,
             "booking_reference": b_ref,
-            "status": "DELIVERED"
+            "status": "QUEUED_LOCALLY",
+            "notice": "Simulated local dispatch. No external telecom carrier configured. Set TWILIO_ACCOUNT_SID for live mobile network delivery."
         }
 
     server.register_tool(
         name="send_confirmation_sms",
-        description="Send an SMS booking confirmation and instruction ticket to the citizen's mobile phone",
+        description="Send an SMS booking confirmation ticket (routes via carrier if configured, or local simulator in demo mode)",
         input_schema={
             "type": "object",
             "properties": {
                 "phone_number": {"type": "string", "description": "10-digit mobile number"},
                 "booking_reference": {"type": "string", "description": "Appointment reference token"},
-                "message": {"type": "string", "description": "Brief confirmation text with date/location"}
+                "message": {"type": "string", "description": "Brief confirmation text with date/location"},
+                "citizen_consent": {"type": "boolean", "description": "Explicit citizen consent to receive SMS"}
             },
             "required": ["phone_number", "booking_reference", "message"]
         },

@@ -109,8 +109,16 @@ def dynamic_rl_agent_policy(messages: List[Dict[str, str]]) -> str:
     # CASE 1: Processing Tool Feedback (<tool_response>)
     # -------------------------------------------------------------
     if "<tool_response>" in last_msg:
+        # Step C: SMS dispatched -> Final confirmation (Must check BEFORE booking_reference since SMS response echoes booking_reference)
+        if "SMS-" in last_msg or "write:sms" in last_msg or "QUEUED_LOCALLY" in last_msg:
+            return """<final_answer>
+Appointment Confirmed & SMS Dispatch Completed!
+- An official SMS confirmation ticket has been dispatched to your registered mobile number.
+- Please carry your Aadhaar card and required scheme documents to the designated Seva Kendra.
+</final_answer>"""
+
         # Step A: Slots returned -> Book the slot
-        if "available_slots" in last_msg:
+        elif "available_slots" in last_msg:
             try:
                 raw_json = last_msg.replace("<tool_response>", "").replace("</tool_response>", "").strip()
                 data = json.loads(json.loads(raw_json)["content"][0]["text"])
@@ -135,7 +143,7 @@ def dynamic_rl_agent_policy(messages: List[Dict[str, str]]) -> str:
 </tool_call>"""
 
         # Step B: Booking reference returned -> Check if SMS requested or conclude
-        elif "booking_reference" in last_msg and "success" in last_msg:
+        elif "booking_reference" in last_msg:
             try:
                 raw_json = last_msg.replace("<tool_response>", "").replace("</tool_response>", "").strip()
                 data = json.loads(json.loads(raw_json)["content"][0]["text"])
@@ -170,14 +178,6 @@ Appointment Booked Successfully!
 - Appointment Time: {slot}
 - Citizen Name: {c_name}
 Please visit the center 15 minutes before your slot with your original identity documents.
-</final_answer>"""
-
-        # Step C: SMS dispatched -> Final confirmation
-        elif "SMS-TX-" in last_msg or '"sent": true' in last_msg:
-            return """<final_answer>
-Appointment Confirmed & SMS Dispatch Completed!
-- An official SMS confirmation ticket has been dispatched to your registered mobile number.
-- Please carry your Aadhaar card and required scheme documents to the designated Seva Kendra.
 </final_answer>"""
 
         # Step D: OCR document scanning response

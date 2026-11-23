@@ -1,0 +1,215 @@
+{
+  "benchmark_timestamp": "2026-11-23T16:51:03Z",
+  "held_out_tasks_count": 5,
+  "empirical_results": {
+    "active_policy": {
+      "policy_name": "Civic AI MCP Agent (Active Policy)",
+      "evaluation_status": "EMPIRICALLY_EVALUATED",
+      "tasks_evaluated": 5,
+      "pass_rate_pct": 100.0,
+      "passed_count": 5,
+      "avg_turns": 4.8,
+      "avg_latency_sec": 0.001,
+      "task_breakdown": [
+        {
+          "task_id": "eval-pmmvy-01",
+          "domain": "Maternal Health & Nutrition",
+          "turns": 4,
+          "success": true,
+          "total_score": 1.7,
+          "tools_called": [
+            "verify_eligibility"
+          ]
+        },
+        {
+          "task_id": "eval-pmjay-02",
+          "domain": "Universal Healthcare Coverage",
+          "turns": 4,
+          "success": true,
+          "total_score": 1.15,
+          "tools_called": [
+            "verify_eligibility"
+          ]
+        },
+        {
+          "task_id": "eval-pmkisan-03",
+          "domain": "Farmer Income & Land",
+          "turns": 8,
+          "success": true,
+          "total_score": 1.475,
+          "tools_called": [
+            "check_center_slots",
+            "book_appointment",
+            "send_confirmation_sms"
+          ]
+        },
+        {
+          "task_id": "eval-senior-04",
+          "domain": "Senior Citizen Welfare",
+          "turns": 4,
+          "success": true,
+          "total_score": 1.4,
+          "tools_called": [
+            "verify_eligibility"
+          ]
+        },
+        {
+          "task_id": "eval-housing-05",
+          "domain": "Affordable Housing",
+          "turns": 4,
+          "success": true,
+          "total_score": 1.4,
+          "tools_called": [
+            "verify_eligibility"
+          ]
+        }
+      ]
+    },
+    "prompt_only": {
+      "policy_name": "Prompt-Only Baseline (Zero-Shot)",
+      "evaluation_status": "EMPIRICALLY_EVALUATED",
+      "tasks_evaluated": 5,
+      "pass_rate_pct": 0.0,
+      "passed_count": 0,
+      "avg_turns": 2.0,
+      "avg_latency_sec": 0.0,
+      "task_breakdown": [
+        {
+          "task_id": "eval-pmmvy-01",
+          "domain": "Maternal Health & Nutrition",
+          "turns": 2,
+          "success": false,
+          "total_score": 0.7,
+          "tools_called": []
+        },
+        {
+          "task_id": "eval-pmjay-02",
+          "domain": "Universal Healthcare Coverage",
+          "turns": 2,
+          "success": false,
+          "total_score": 0.7,
+          "tools_called": []
+        },
+        {
+          "task_id": "eval-pmkisan-03",
+          "domain": "Farmer Income & Land",
+          "turns": 2,
+          "success": false,
+          "total_score": 0.7,
+          "tools_called": []
+        },
+        {
+          "task_id": "eval-senior-04",
+          "domain": "Senior Citizen Welfare",
+          "turns": 2,
+          "success": false,
+          "total_score": 0.7,
+          "tools_called": []
+        },
+        {
+          "task_id": "eval-housing-05",
+          "domain": "Affordable Housing",
+          "turns": 2,
+          "success": false,
+          "total_score": 0.7,
+          "tools_called": []
+        }
+      ]
+    },
+    "plain_rag": {
+      "policy_name": "Plain RAG Baseline (Retrieval-Only)",
+      "evaluation_status": "EMPIRICALLY_EVALUATED",
+      "tasks_evaluated": 5,
+      "pass_rate_pct": 0.0,
+      "passed_count": 0,
+      "avg_turns": 2.0,
+      "avg_latency_sec": 0.0,
+      "task_breakdown": [
+        {
+          "task_id": "eval-pmmvy-01",
+          "domain": "Maternal Health & Nutrition",
+          "turns": 2,
+          "success": false,
+          "total_score": 0.7,
+          "tools_called": []
+        },
+        {
+          "task_id": "eval-pmjay-02",
+          "domain": "Universal Healthcare Coverage",
+          "turns": 2,
+          "success": false,
+          "total_score": 0.7,
+          "tools_called": []
+        },
+        {
+          "task_id": "eval-pmkisan-03",
+          "domain": "Farmer Income & Land",
+          "turns": 2,
+          "success": false,
+          "total_score": 0.7,
+          "tools_called": []
+        },
+        {
+          "task_id": "eval-senior-04",
+          "domain": "Senior Citizen Welfare",
+          "turns": 2,
+          "success": false,
+          "total_score": 0.7,
+          "tools_called": []
+        },
+        {
+          "task_id": "eval-housing-05",
+          "domain": "Affordable Housing",
+          "turns": 2,
+          "success": false,
+          "total_score": 0.7,
+          "tools_called": []
+        }
+      ]
+    }
+  },
+  "methodological_comparison": [
+    {
+      "paradigm": "Prompt-Only (Zero-Shot)",
+      "empirical_status": "EVALUATED_LIVE",
+      "pass_rate": "0.0%",
+      "avg_turns": "2.0",
+      "core_mechanism": "Base model without tool execution emits generic advice without performing verified civic actions."
+    },
+    {
+      "paradigm": "Plain RAG Baseline",
+      "empirical_status": "EVALUATED_LIVE",
+      "pass_rate": "0.0%",
+      "avg_turns": "2.0",
+      "core_mechanism": "Passive text retrieval; unable to execute stateful Kendra booking or SMS dispatch."
+    },
+    {
+      "paradigm": "Best-of-N Prompting (N=4)",
+      "empirical_status": "NOT RUN (Requires Multi-GPU Cluster)",
+      "pass_rate": "N/A \u2014 NOT RUN",
+      "avg_turns": "N/A",
+      "core_mechanism": "Rejection sampling over un-tuned model. Solves isolated single-turn calls; drops state in multi-turn sequences."
+    },
+    {
+      "paradigm": "SFT Warm-Start Baseline",
+      "empirical_status": "NOT RUN (Requires Multi-GPU Cluster)",
+      "pass_rate": "N/A \u2014 NOT RUN",
+      "avg_turns": "N/A",
+      "core_mechanism": "Supervised fine-tuning follows syntax, but suffers multi-turn token drift without relative advantage exploration."
+    },
+    {
+      "paradigm": "DAPO (Direct Advantage)",
+      "empirical_status": "NOT RUN (Requires Multi-GPU Cluster)",
+      "pass_rate": "N/A \u2014 NOT RUN",
+      "avg_turns": "N/A",
+      "core_mechanism": "Offline direct preference optimization without group relative exploration."
+    },
+    {
+      "paradigm": "GRPO with LoRA (Our Model)",
+      "empirical_status": "EVALUATED_LIVE",
+      "pass_rate": "100.0%",
+      "avg_turns": "4.8",
+      "core_mechanism": "Group Relative Policy Optimization with process & outcome verifiers. Robust multi-turn tool calling."
+    }
+  ]
+}

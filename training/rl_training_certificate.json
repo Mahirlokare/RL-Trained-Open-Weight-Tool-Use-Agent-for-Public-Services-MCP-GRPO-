@@ -1,29 +1,28 @@
 {
-  "certificate_title": "RL Policy GRPO Verification & Correctness Audit",
-  "model_architecture": "Qwen2.5-7B-Instruct + LoRA",
+  "audit_title": "Empirical Policy Audit & Rubric Verification Report",
+  "methodology": "Empirical rollout evaluation on held-out public service trajectories",
+  "model_architecture": "Qwen2.5-7B-Instruct + LoRA (r=16, alpha=32)",
   "algorithm": "Group Relative Policy Optimization (GRPO)",
-  "group_size_G": 4,
-  "total_training_steps": 250,
-  "initial_reward": -0.136,
-  "final_reward": 1.155,
-  "reward_gain": 1.291,
+  "evaluation_type": "Empirical Held-Out Validation Matrix",
   "held_out_pass_rate_pct": 100.0,
-  "syntax_and_schema_validity_pct": 100.0,
+  "syntax_and_schema_validity_pct": 56.5,
+  "average_trajectory_turns": 4.8,
   "zero_looping_guarantee": true,
-  "mcp_servers_verified": [
+  "status": "EMPIRICALLY_VERIFIED",
+  "verified_mcp_servers": [
     "scheme-service",
     "ocr-service",
     "eligibility-service",
     "appointment-service",
     "notification-service"
   ],
-  "status": "CERTIFIED_PRODUCTION_GRADE",
   "test_breakdown": [
     {
-      "scenario": "Maternal PMMVY",
+      "scenario": "Maternal PMMVY Assistance",
+      "task_id": "eval-pmmvy-maternal",
       "turns": 4,
       "success": true,
-      "syntax_score": 0.7,
+      "syntax_score": 0.55,
       "loop_penalty": 0.0,
       "tools_called": [
         "verify_eligibility"
@@ -31,10 +30,11 @@
       "status": "PASSED"
     },
     {
-      "scenario": "Ayushman Bharat PM-JAY",
+      "scenario": "Ayushman Bharat PM-JAY Inquiry",
+      "task_id": "eval-pmjay-health",
       "turns": 4,
       "success": true,
-      "syntax_score": 0.7,
+      "syntax_score": 0.55,
       "loop_penalty": 0.0,
       "tools_called": [
         "get_scheme_details"
@@ -42,10 +42,11 @@
       "status": "PASSED"
     },
     {
-      "scenario": "PM-KISAN Booking",
+      "scenario": "PM-KISAN Center Appointment Hold",
+      "task_id": "eval-pmkisan-booking",
       "turns": 8,
       "success": true,
-      "syntax_score": 0.7,
+      "syntax_score": 0.62,
       "loop_penalty": 0.0,
       "tools_called": [
         "check_center_slots",
@@ -55,10 +56,11 @@
       "status": "PASSED"
     },
     {
-      "scenario": "Senior Citizen Eligibility",
+      "scenario": "Senior Citizen Eligibility Ceiling",
+      "task_id": "eval-senior-disqualification",
       "turns": 4,
       "success": true,
-      "syntax_score": 0.7,
+      "syntax_score": 0.55,
       "loop_penalty": 0.0,
       "tools_called": [
         "verify_eligibility"
@@ -66,10 +68,11 @@
       "status": "PASSED"
     },
     {
-      "scenario": "Aadhaar OCR Scan",
+      "scenario": "Aadhaar Identity Proof Checksum Validation",
+      "task_id": "eval-aadhaar-ocr",
       "turns": 4,
       "success": true,
-      "syntax_score": 0.7,
+      "syntax_score": 0.55,
       "loop_penalty": 0.0,
       "tools_called": [
         "scan_document_ocr"

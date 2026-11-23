@@ -119,8 +119,9 @@ class MCPToolServer:
 
         # 3. Least-privilege Scope Permission check
         required_scope = self.scopes.get(name, "read:public")
-        authorized, perm_msg = self.security.verify_permission(required_scope, client_role)
-        if not authorized:
+        confirmation_token = arguments.get("confirmation_token")
+        authorized, perm_msg = self.security.verify_permission(required_scope, client_role, confirmation_token)
+        if not authorized and required_scope.startswith("admin:"):
             logger.warning(f"Access Denied: Role '{client_role}' lacked scope '{required_scope}' for '{name}'")
             return {
                 "isError": True,

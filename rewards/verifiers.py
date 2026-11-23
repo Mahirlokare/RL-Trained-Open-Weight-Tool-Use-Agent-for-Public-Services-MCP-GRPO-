@@ -82,6 +82,12 @@ class TrajectoryVerifier:
 
         # 3. Check answer grounding against actual tool outputs
         answer_text = trajectory.final_answer.lower()
+        if "expected_outcome" in ground_truth:
+            if ground_truth["expected_outcome"].lower() in answer_text:
+                outcome_score += 0.3
+            else:
+                report["grounding_verified"] = False
+
         for substr in ground_truth.get("required_output_substrings", []):
             if substr.lower() in answer_text:
                 outcome_score += 0.15
@@ -94,3 +100,34 @@ class TrajectoryVerifier:
                 report["forbidden_content_detected"] = forbidden
 
         return max(0.0, outcome_score), report
+
+    def verify_trajectory(self, trajectory: AgentTrajectory, ground_truth: Dict[str, Any]) -> Dict[str, Any]:
+        """Unified verification evaluating syntax, schema, loop penalty, and outcome."""
+        from rewards.grpo_rewards import REGISTERED_TOOL_NAMES
+        
+        # 1. Syntax score
+        syntax_scores = []
+        for turn in trajectory.turns:
+            if turn.role == "assistant":
+                s_score, _ = self.verify_syntax_and_schema(turn.content, REGISTERED_TOOL_NAMES)
+                syntax_scores.append(s_score)
+        avg_syntax = sum(syntax_scores) / len(syntax_scores) if syntax_scores else 0.0
+
+        # 2. Looping penalty
+        loop_penalty, loop_warnings = self.check_looping_and_redundancy(trajectory)
+
+        # 3. Outcome score
+        outcome_score, outcome_report = self.verify_ground_truth_outcome(trajectory, ground_truth)
+
+        is_success = trajectory.success and (outcome_score >= 0.6)
+        total_score = max(0.0, avg_syntax + outcome_score + loop_penalty)
+
+        return {
+            "is_success": is_success,
+            "total_score": round(total_score, 3),
+            "syntax_score": round(avg_syntax, 3),
+            "loop_penalty": round(loop_penalty, 3),
+            "outcome_score": round(outcome_score, 3),
+            "outcome_report": outcome_report,
+            "loop_warnings": loop_warnings
+        }
