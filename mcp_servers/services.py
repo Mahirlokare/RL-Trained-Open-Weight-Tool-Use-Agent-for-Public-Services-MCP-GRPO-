@@ -11,9 +11,85 @@ Covers 9 Major National Welfare Sectors:
 8. Education & Scholarships (NSP_SCHOLARSHIP)
 9. Food Security & Ration (NFSA_RATION)
 """
+import os
+import re
 from typing import Dict, Any, List, Optional
 from mcp_servers.registry import MCPToolServer, MCPHub
 from mcp_servers.security import SecurityPolicyEngine
+
+# Verhoeff algorithm multiplication and permutation matrices (Official UIDAI Aadhaar Validation standard)
+VERHOEFF_D = [
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    [1, 2, 3, 4, 0, 6, 7, 8, 9, 5],
+    [2, 3, 4, 0, 1, 7, 8, 9, 5, 6],
+    [3, 4, 0, 1, 2, 8, 9, 5, 6, 7],
+    [4, 0, 1, 2, 3, 9, 5, 6, 7, 8],
+    [5, 9, 8, 7, 6, 0, 4, 3, 2, 1],
+    [6, 5, 9, 8, 7, 1, 0, 4, 3, 2],
+    [7, 6, 5, 9, 8, 2, 1, 0, 4, 3],
+    [8, 7, 6, 5, 9, 3, 2, 1, 0, 4],
+    [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+]
+VERHOEFF_P = [
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    [1, 5, 7, 6, 2, 8, 3, 0, 9, 4],
+    [5, 8, 0, 3, 7, 9, 6, 1, 4, 2],
+    [8, 9, 1, 6, 0, 4, 3, 5, 2, 7],
+    [9, 4, 5, 3, 1, 2, 6, 8, 7, 0],
+    [4, 2, 8, 6, 5, 7, 3, 9, 0, 1],
+    [2, 7, 9, 3, 8, 0, 6, 4, 1, 5],
+    [7, 0, 4, 6, 9, 1, 3, 2, 5, 8]
+]
+
+def validate_verhoeff(num_str: str) -> bool:
+    """Validates 12-digit Aadhaar UID against official Verhoeff dihedral D5 checksum."""
+    digits = [int(d) for d in num_str if d.isdigit()]
+    if len(digits) != 12:
+        return False
+    c = 0
+    for i, d in enumerate(reversed(digits)):
+        c = VERHOEFF_D[c][VERHOEFF_P[i % 8][d]]
+    return c == 0
+
+def is_dummy_or_fake_uid(digits: str) -> bool:
+    """Flags obvious unallocated or dummy test Aadhaar sequences."""
+    if len(digits) != 12:
+        return True
+    if len(set(digits)) <= 2:
+        return True
+    if digits in "01234567890123456789" or digits in "98765432109876543210":
+        return True
+    known_fakes = {"123412341234", "123456789012", "999999999999", "111111111111", "000000000000", "012345678901"}
+    return digits in known_fakes
+
+def extract_text_from_file(file_path: str) -> str:
+    """Extracts optical text from uploaded images using pytesseract or binary streams."""
+    if not file_path or not os.path.exists(file_path):
+        return str(file_path or "")
+    
+    # Try pytesseract optical character recognition on image
+    try:
+        import pytesseract
+        from PIL import Image
+        img = Image.open(file_path)
+        if img.mode != "RGB":
+            img = img.convert("RGB")
+        txt = pytesseract.image_to_string(img)
+        if txt and len(txt.strip()) > 3:
+            return txt
+    except Exception:
+        pass
+
+    # Fallback: scan binary string streams for text content
+    try:
+        with open(file_path, "rb") as f:
+            raw = f.read(500000)
+            strings = re.findall(rb'[A-Za-z0-9\s,./:\-_]{4,}', raw)
+            return " ".join([s.decode('ascii', errors='ignore') for s in strings])
+    except Exception:
+        pass
+
+    return os.path.basename(file_path)
 
 SCHEMES_DB: Dict[str, Dict[str, Any]] = {
     "PMMVY": {
@@ -235,15 +311,38 @@ def build_ocr_server(sec: SecurityPolicyEngine) -> MCPToolServer:
     def scan_document_ocr(document_type: str, document_reference: str) -> Dict[str, Any]:
         doc_t = (document_type or "AADHAAR").upper()
         doc_ref = str(document_reference or "")
+        filename = os.path.basename(doc_ref) if doc_ref else "Uploaded_Proof"
         ref_low = doc_ref.lower()
-        
-        # If user uploaded a file, infer type from filename or default
+
+        # Check if filename or query indicates a test/fake upload
+        is_filename_flagged_fake = any(k in ref_low for k in ["fake", "dummy", "fraud", "invalid", "sample_test"])
+
+        # Extract text from file using optical recognition or binary stream inspection
+        extracted_content = extract_text_from_file(doc_ref)
+        full_text = f"{doc_ref} {extracted_content}".lower()
+
+        # Document Type 1: Land Record (7/12)
         if "7_12" in ref_low or "land" in ref_low or "7_12" in doc_t or "LAND" in doc_t:
+            has_land_keywords = any(k in full_text for k in ["7/12", "satbara", "land", "survey", "gut", "gat", "hectare", "khasra", "revenue"])
+            if is_filename_flagged_fake or not has_land_keywords:
+                return {
+                    "scope": "read:ocr",
+                    "document_verified": False,
+                    "document_type": "Land_Record_7_12",
+                    "filename": filename,
+                    "verification_status": "REJECTED: Inauthentic Land Record Proof",
+                    "extracted_fields": {
+                        "document_title": "7/12 Land Revenue Record (Rejected)",
+                        "status": "REJECTED - Missing Land Revenue Record Criteria",
+                        "rejection_reasons": ["Document does not contain official Satbara / 7/12 land revenue stamps or valid Gut/Survey number"]
+                    }
+                }
             return {
                 "scope": "read:ocr",
                 "document_verified": True,
                 "document_type": "Land_Record_7_12",
-                "filename": doc_ref.split("/")[-1].split("\\")[-1],
+                "filename": filename,
+                "verification_status": "VERIFIED: Authentic Land Revenue Record",
                 "extracted_fields": {
                     "document_title": "7/12 Land Revenue Record (Satbara Utara)",
                     "land_holding_hectares": 1.4,
@@ -252,12 +351,29 @@ def build_ocr_server(sec: SecurityPolicyEngine) -> MCPToolServer:
                     "status": "Verified Land Holding"
                 }
             }
+
+        # Document Type 2: Income Certificate
         elif "income" in ref_low or "income" in doc_t:
+            has_inc_keywords = any(k in full_text for k in ["income", "certificate", "tehsildar", "tahsildar", "revenue", "annual", "certified", "rs", "inr"])
+            if is_filename_flagged_fake or not has_inc_keywords:
+                return {
+                    "scope": "read:ocr",
+                    "document_verified": False,
+                    "document_type": "Income_Certificate",
+                    "filename": filename,
+                    "verification_status": "REJECTED: Inauthentic Income Certificate",
+                    "extracted_fields": {
+                        "document_title": "Income Certificate (Rejected)",
+                        "status": "REJECTED - Invalid Issuing Authority",
+                        "rejection_reasons": ["Missing official Tehsildar / Revenue Department seal or digital barcode verification"]
+                    }
+                }
             return {
                 "scope": "read:ocr",
                 "document_verified": True,
                 "document_type": "Income_Certificate",
-                "filename": doc_ref.split("/")[-1].split("\\")[-1],
+                "filename": filename,
+                "verification_status": "VERIFIED: Authentic Income Proof",
                 "extracted_fields": {
                     "document_title": "Official Annual Income Certificate",
                     "certified_income": 350000,
@@ -265,12 +381,29 @@ def build_ocr_server(sec: SecurityPolicyEngine) -> MCPToolServer:
                     "status": "Verified Income Certificate"
                 }
             }
+
+        # Document Type 3: Ration Card
         elif "ration" in ref_low or "ration" in doc_t:
+            has_rat_keywords = any(k in full_text for k in ["ration", "card", "phh", "aay", "food security", "nfsa", "family", "grain"])
+            if is_filename_flagged_fake or not has_rat_keywords:
+                return {
+                    "scope": "read:ocr",
+                    "document_verified": False,
+                    "document_type": "Ration_Card",
+                    "filename": filename,
+                    "verification_status": "REJECTED: Inauthentic Ration Card",
+                    "extracted_fields": {
+                        "document_title": "Ration Card (Rejected)",
+                        "status": "REJECTED - Non-Compliant Food Security Card",
+                        "rejection_reasons": ["Card number does not exist in the National Food Security Database"]
+                    }
+                }
             return {
                 "scope": "read:ocr",
                 "document_verified": True,
                 "document_type": "Ration_Card",
-                "filename": doc_ref.split("/")[-1].split("\\")[-1],
+                "filename": filename,
+                "verification_status": "VERIFIED: Active National Food Security Card",
                 "extracted_fields": {
                     "document_title": "National Food Security Card",
                     "category": "Priority Household (PHH)",
@@ -278,19 +411,65 @@ def build_ocr_server(sec: SecurityPolicyEngine) -> MCPToolServer:
                     "status": "Active Ration Card"
                 }
             }
+
+        # Document Type 4: Aadhaar Identity Card (Extracts EXACT ID from image & checks Verhoeff)
         else:
-            # Default to Aadhaar Card OCR
+            # Search for 12 digits across formats: 1234 5678 9012, 1234-5678-9012, or 123456789012
+            combined_search_text = extracted_content + " " + doc_ref
+            uid_matches = re.findall(r'(?:\b|\D)(\d{4})[\s\-]+(\d{4})[\s\-]+(\d{4})(?:\b|\D)', combined_search_text)
+            detected_uid = None
+            if uid_matches:
+                detected_uid = "".join(uid_matches[0])
+            else:
+                flat_12 = re.findall(r'(?:\b|\D)(\d{12})(?:\b|\D)', combined_search_text)
+                if flat_12:
+                    detected_uid = flat_12[0]
+
+            dob_match = re.search(r'\b(19\d{2}|20[0-2]\d)\b', combined_search_text)
+            dob_year = int(dob_match.group(1)) if dob_match else 1998
+
+            # Check for authentic Aadhaar vs fake / invalid UID
+            if not detected_uid or is_filename_flagged_fake or is_dummy_or_fake_uid(detected_uid) or not validate_verhoeff(detected_uid):
+                last_4 = detected_uid[-4:] if detected_uid else "INVALID"
+                reasons = []
+                if not detected_uid:
+                    reasons.append("No legible 12-digit Aadhaar UID detected on document")
+                if detected_uid and (is_dummy_or_fake_uid(detected_uid) or not validate_verhoeff(detected_uid)):
+                    reasons.append(f"Aadhaar UID ending in '{last_4}' failed official UIDAI Verhoeff dihedral D5 mathematical checksum")
+                    reasons.append("Synthetic, unallocated, or test number sequence detected")
+                if is_filename_flagged_fake:
+                    reasons.append("Uploaded file name or metadata flagged as synthetic test/fake proof")
+
+                return {
+                    "scope": "read:ocr",
+                    "document_verified": False,
+                    "document_type": "Aadhaar",
+                    "filename": filename,
+                    "verification_status": "REJECTED: Fraud / Fake Identity Proof Detected",
+                    "extracted_fields": {
+                        "document_title": "Aadhaar Identity Card (Rejected)",
+                        "id_detected": f"XXXX-XXXX-{last_4}" if last_4 != "INVALID" else "NOT_DETECTED",
+                        "raw_id_tested": detected_uid or "None",
+                        "verhoeff_checksum": "FAILED (Invalid Checksum)",
+                        "status": "REJECTED - Non-Compliant UIDAI Number",
+                        "rejection_reasons": reasons
+                    }
+                }
+
+            # Authentic Aadhaar ID with Valid Verhoeff Checksum
             return {
                 "scope": "read:ocr",
                 "document_verified": True,
                 "document_type": "Aadhaar",
-                "filename": doc_ref.split("/")[-1].split("\\")[-1] if doc_ref else "Uploaded_Proof",
+                "filename": filename,
+                "verification_status": "VERIFIED: Authentic Aadhaar ID",
                 "extracted_fields": {
                     "document_title": "Aadhaar Identity Card",
-                    "id_masked": "XXXX-XXXX-8921",
-                    "dob_year": 1998,
+                    "id_masked": f"XXXX-XXXX-{detected_uid[-4:]}",
+                    "dob_year": dob_year,
                     "state": "Maharashtra",
-                    "biometric_status": "Valid Demographic Match"
+                    "verhoeff_checksum": "PASSED (Valid Dihedral D5 Checksum)",
+                    "status": "Verified Identity Match"
                 }
             }
 

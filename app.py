@@ -150,9 +150,9 @@ def execute_agent_workflow(user_query: str, policy_mode: str, uploaded_doc=None)
             doc_path = uploaded_doc if isinstance(uploaded_doc, str) else getattr(uploaded_doc, "name", "")
             doc_filename = os.path.basename(doc_path)
             if not query_text:
-                query_text = f"Please perform OCR verification on my uploaded document: {doc_filename}"
+                query_text = f"Please perform OCR verification on my uploaded document: {doc_path}"
             else:
-                query_text = f"{query_text} (Attached document proof: {doc_filename})"
+                query_text = f"{query_text} (Attached document proof: {doc_path})"
 
         if not query_text:
             return "### Status: ⚠️ Incomplete Query\nPlease enter a citizen request or upload a document proof.", "N/A", "No query or document provided."
@@ -224,14 +224,26 @@ def run_direct_ocr_service(file_obj, doc_type_choice):
     hub = create_default_mcp_hub()
     result = hub.execute_call("scan_document_ocr", {
         "document_type": doc_type_choice,
-        "document_reference": file_name
+        "document_reference": file_path
     })
 
     if result.get("isError"):
         return f"❌ OCR Processing Failed: {result.get('content', [{}])[0].get('text', '')}", "{}"
 
     extracted_text = result.get("content", [{}])[0].get("text", "{}")
-    summary = f"✅ OCR Extraction Completed for: **{file_name}** ({doc_type_choice})"
+    try:
+        data = json.loads(extracted_text)
+        is_verified = data.get("document_verified", False)
+        status_msg = data.get("verification_status", "Processed")
+        fields = data.get("extracted_fields", {})
+        id_detected = fields.get("id_masked") or fields.get("id_detected", "N/A")
+        if is_verified:
+            summary = f"### OCR Verification: ✅ AUTHENTIC ID VERIFIED\n- **File:** `{file_name}`\n- **Extracted ID:** `{id_detected}`\n- **Status:** {status_msg}"
+        else:
+            summary = f"### OCR Verification: ❌ REJECTED (Fraud / Fake ID Flagged)\n- **File:** `{file_name}`\n- **Detected ID:** `{id_detected}`\n- **Status:** {status_msg}\n- **Notice:** Document does not match official UIDAI Verhoeff standards."
+    except Exception:
+        summary = f"OCR Execution Completed for: **{file_name}** ({doc_type_choice})"
+
     return summary, extracted_text
 
 # ---------------------------------------------------------------------

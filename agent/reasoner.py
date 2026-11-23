@@ -185,18 +185,40 @@ Appointment Confirmed & SMS Dispatch Completed!
             try:
                 raw_json = last_msg.replace("<tool_response>", "").replace("</tool_response>", "").strip()
                 data = json.loads(json.loads(raw_json)["content"][0]["text"])
+                is_verified = data.get("document_verified", False)
                 doc_name = data.get("document_type", "Document")
                 fields = data.get("extracted_fields", {})
-                fields_str = ", ".join([f"{k}: {v}" for k, v in fields.items()])
+                reasons = fields.get("rejection_reasons", [])
+                status_str = fields.get("status", "Verified")
+                id_val = fields.get("id_masked") or fields.get("id_detected", "N/A")
             except Exception:
+                is_verified = False
                 doc_name = "Identity Document"
-                fields_str = "Verified"
+                fields = {}
+                reasons = ["Document parsing failed"]
+                status_str = "REJECTED"
+                id_val = "N/A"
 
-            return f"""<final_answer>
-OCR Verification Succeeded:
+            if not is_verified:
+                reasons_str = "\n  - ".join(reasons) if reasons else "Failed authenticity validation"
+                return f"""<final_answer>
+⚠️ Document Verification FAILED: Fraud / Inauthentic ID Detected
+- Document Category: {doc_name}
+- Detected Identifier: {id_val}
+- Official Status: {status_str}
+- Rejection Reasons:
+  - {reasons_str}
+Warning: Official welfare schemes strictly require a genuine, UIDAI-compliant identity document. Please upload an authentic, un-altered government certificate.
+</final_answer>"""
+            else:
+                fields_str = ", ".join([f"{k}: {v}" for k, v in fields.items() if k not in ["rejection_reasons"]])
+                return f"""<final_answer>
+Official OCR Verification Succeeded:
 - Document Type: {doc_name}
-- Extracted Fields: {fields_str}
-- Validation Status: Identity proof verified against official schema. You may proceed with scheme enrollment.
+- Verified Identifier: {id_val}
+- Extracted Parameters: {fields_str}
+- Verification Status: {status_str} (Verified against official government schema).
+You may now proceed with scheme enrollment or appointment booking.
 </final_answer>"""
 
         # Step E: Eligibility verification response
@@ -351,13 +373,21 @@ How can I help you today? You can ask about eligibility, scan proof documents, o
         elif "ration" in lum_lower:
             doc_type = "Ration_Card"
 
-        return f"""<think>Document OCR scanning requested for {doc_type}. Dispatching scan_document_ocr to extract structured identity parameters.</think>
+        # Extract uploaded document path, filename, or numbers from user query
+        file_ref_match = re.search(r'(?:attached document proof:\s*|uploaded document:\s*)([^\s\)]+)', latest_user_msg, re.IGNORECASE)
+        if file_ref_match:
+            doc_ref = file_ref_match.group(1).strip()
+        else:
+            # If citizen provided numbers or text in prompt, pass it as reference
+            doc_ref = latest_user_msg if len(latest_user_msg) <= 150 else "DOC-REF-UPLOAD-991"
+
+        return f"""<think>Document OCR scanning requested for {doc_type}. Dispatching scan_document_ocr on reference '{doc_ref}'.</think>
 <tool_call>
 {{
   "name": "scan_document_ocr",
   "arguments": {{
     "document_type": "{doc_type}",
-    "document_reference": "DOC-REF-UPLOAD-991"
+    "document_reference": "{doc_ref}"
   }}
 }}
 </tool_call>"""
