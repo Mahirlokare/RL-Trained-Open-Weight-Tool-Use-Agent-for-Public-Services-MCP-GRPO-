@@ -67,6 +67,24 @@ def respond_in_chat(user_msg: str, chat_history):
         chat_history = []
 
     try:
+        # Security Policy Check for Prompt Injection / Adversarial Input
+        sec = SecurityPolicyEngine()
+        is_attack, attack_reason = sec.scan_for_prompt_injection(user_msg)
+        if is_attack:
+            quarantine_resp = (
+                f"🛡️ **Security Policy Alert:**\n{attack_reason}\n\n"
+                "Civic AI enforces strict least-privilege security policies. Requests attempting to bypass eligibility rules, inject prompt overrides, or alter database states without authorized credentials are automatically quarantined."
+            )
+            if chat_history and isinstance(chat_history[0], dict):
+                chat_history.append({"role": "user", "content": user_msg})
+                chat_history.append({"role": "assistant", "content": quarantine_resp})
+            elif chat_history and isinstance(chat_history[0], (list, tuple)):
+                chat_history.append([user_msg, quarantine_resp])
+            else:
+                chat_history.append({"role": "user", "content": user_msg})
+                chat_history.append({"role": "assistant", "content": quarantine_resp})
+            return "", chat_history
+
         hub = create_default_mcp_hub()
         runtime = MCPAgentRuntime(mcp_hub=hub, model_fn=dynamic_rl_agent_policy, max_iterations=6, max_tool_chars=1200)
 
@@ -138,6 +156,16 @@ def execute_agent_workflow(user_query: str, policy_mode: str, uploaded_doc=None)
 
         if not query_text:
             return "### Status: ⚠️ Incomplete Query\nPlease enter a citizen request or upload a document proof.", "N/A", "No query or document provided."
+
+        # Security Policy Check for Prompt Injection / Adversarial Input
+        sec = SecurityPolicyEngine()
+        is_attack, attack_reason = sec.scan_for_prompt_injection(query_text)
+        if is_attack:
+            return (
+                "### Status: 🛡️ Security Alert: Malicious Input Quarantined",
+                f"⚠️ SecurityPolicyEngine Interception:\n{attack_reason}\n\nThe system refused to bypass verification rules or grant unauthorized privileges.",
+                "### Security Audit Trace:\n- Taint Detection: `POSITIVE`\n- Threat Category: `Indirect Prompt Injection / Privilege Escalation`\n- Action: `Quarantined (Zero Tools Executed)`"
+            )
 
         hub = create_default_mcp_hub()
         is_rl = "RL-Trained" in str(policy_mode)
