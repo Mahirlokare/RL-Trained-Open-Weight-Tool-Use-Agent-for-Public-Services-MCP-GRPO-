@@ -5,3 +5,6 @@ __pycache__/
 outputs/
 data/*.jsonl
 .env
+
+linkedin_media/
+
