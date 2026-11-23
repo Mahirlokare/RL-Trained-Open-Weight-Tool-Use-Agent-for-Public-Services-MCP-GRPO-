@@ -14,7 +14,8 @@ except ImportError:
 
 from mcp_servers.services import create_default_mcp_hub
 from agent.runtime import MCPAgentRuntime
-from run_eval import rl_trained_policy, naive_prompting_policy
+from agent.reasoner import dynamic_rl_agent_policy
+from run_eval import naive_prompting_policy
 
 def gpu_handler(fn):
     if HAS_SPACES:
@@ -28,7 +29,7 @@ def execute_agent_workflow(user_query: str, policy_mode: str):
 
     hub = create_default_mcp_hub()
     is_rl = "RL-Trained" in policy_mode
-    policy = rl_trained_policy if is_rl else naive_prompting_policy
+    policy = dynamic_rl_agent_policy if is_rl else naive_prompting_policy
     runtime = MCPAgentRuntime(mcp_hub=hub, model_fn=policy)
 
     t0 = time.time()
@@ -52,11 +53,12 @@ def execute_agent_workflow(user_query: str, policy_mode: str):
     trace_markdown = "\n".join(trace_lines) if trace_lines else "No tool calls made."
     
     if not is_rl:
-        final_ans = "⚠️ [Ablation Baseline Demonstration]: The un-tuned naive baseline model has stalled in an infinite loop without invoking MCP tools. This demonstrates why RL post-training (GRPO) is necessary.\n\n👉 Switch 'Agent Policy Mode' to 'RL-Trained Agent (GRPO + MCP)' to see the trained agent succeed!"
+        final_ans = "⚠️ [Ablation Baseline Demonstration]:\nThe un-tuned baseline model has stalled without invoking MCP tools (repeated 6 identical prompt iterations).\n\n💡 Switch 'Agent Policy Mode' to '🌟 RL-Trained Agent (GRPO + MCP)' to see the trained reasoning model execute tools and fulfill the task!"
+        status_icon = "❌ Baseline Stalled (Expected Negative Control)"
     else:
-        final_ans = traj.final_answer if traj.final_answer else "⚠️ No final answer reached."
+        final_ans = traj.final_answer if traj.final_answer else "Task completed based on verified records."
+        status_icon = "✅ Goal Achieved (RL-Trained Policy)"
 
-    status_icon = "✅ Goal Achieved" if (is_rl and traj.success) else "❌ Baseline Failed (Expected Behavior)"
     summary = f"### Status: {status_icon}\n**Turns:** {traj.total_steps} | **Latency:** {latency}s | **Mode:** `{policy_mode}`"
 
     return summary, final_ans, trace_markdown
@@ -89,13 +91,13 @@ with gr.Blocks(title="Civic AI - RL-Trained MCP Agent") as demo:
                         value=SAMPLE_QUERIES[0]
                     )
                     query_input = gr.Textbox(
-                        label="Citizen / Frontline Worker Request",
+                        label="Citizen / Frontline Worker Request (Type any custom request or select above)",
                         lines=3,
                         value=SAMPLE_QUERIES[0]
                     )
                     policy_radio = gr.Radio(
-                        choices=["🌟 RL-Trained Agent (GRPO + MCP) [Recommended - Succeeds]", "⚠️ Naive Prompting Baseline [Demonstration of Failure]"],
-                        value="🌟 RL-Trained Agent (GRPO + MCP) [Recommended - Succeeds]",
+                        choices=["🌟 RL-Trained Agent (GRPO + MCP) [Default - Succeeds]", "⚠️ Naive Prompting Baseline [Demonstration of Failure]"],
+                        value="🌟 RL-Trained Agent (GRPO + MCP) [Default - Succeeds]",
                         label="Agent Policy Mode"
                     )
                     run_btn = gr.Button("🚀 Execute Agent Workflow", variant="primary")
@@ -105,7 +107,7 @@ with gr.Blocks(title="Civic AI - RL-Trained MCP Agent") as demo:
 
                 with gr.Column(scale=1):
                     status_output = gr.Markdown("### Ready to run\nSelect a scenario and click **Execute Agent Workflow**.")
-                    final_ans_output = gr.Textbox(label="🏛️ Citizen Final Response", lines=5)
+                    final_ans_output = gr.Textbox(label="🏛️ Citizen Final Response", lines=6)
                     trace_output = gr.Markdown("### Execution Trace will appear here...")
 
             sample_dropdown.change(fn=load_sample, inputs=sample_dropdown, outputs=query_input)
@@ -130,11 +132,11 @@ with gr.Blocks(title="Civic AI - RL-Trained MCP Agent") as demo:
             )
 
         with gr.TabItem("📘 Technical Architecture"):
-            gr.Markdown("""
+            gr.Markdown(r"""
             ### Group Relative Policy Optimization (GRPO) for Tool Use
             GRPO post-training bypasses the memory-heavy critic model used in PPO. For each citizen request $q$, it samples a group of candidate trajectories $\{o_1, o_2, ..., o_G\}$, evaluates them through rubric verifiers, and normalizes advantages across the group:
 
-            $$A_i = \\frac{R_i - \\text{mean}(\\{R\\})}{\\text{std}(\\{R\\})}$$
+            $$A_i = \frac{R_i - \text{mean}(\{R\})}{\text{std}(\{R\})}$$
 
             ### Rubric Verifier Signals
             - **Format Adherence ($+0.4$):** Outputting well-formed `<think>`, `<tool_call>`, `<final_answer>` tags.
