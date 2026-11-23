@@ -3,7 +3,8 @@ title: Civic Mcp Agent
 emoji: 🏛️
 colorFrom: blue
 colorTo: indigo
-sdk: streamlit
+sdk: gradio
+sdk_version: 4.44.0
 app_file: app.py
 pinned: false
 license: mit
@@ -14,7 +15,7 @@ license: mit
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Mahirlokare/RL-Trained-Open-Weight-Tool-Use-Agent-for-Public-Services-MCP-GRPO-/blob/main/notebooks/train_grpo_colab.ipynb)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/)
+[![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/mahirlokare/civic-mcp-agent)
 
 A systems-grade, research-ready implementation demonstrating **post-training of open-weight LLMs (Qwen 4B/8B class)** with **Group Relative Policy Optimization (GRPO)** to execute multi-turn, multi-tool workflows across **Model Context Protocol (MCP)** servers.
 
@@ -71,19 +72,11 @@ flowchart TD
 
 ## 🚀 Free Hosting & 1-Click Deployment
 
-### 1. Free Web App on Hugging Face Spaces (24/7 Free)
-1. Go to [Hugging Face Spaces](https://huggingface.co/spaces) and click **"Create new Space"**.
-2. Select **Streamlit** as the SDK and choose the **Free CPU** tier.
-3. Link your GitHub repository:
-   `https://github.com/Mahirlokare/RL-Trained-Open-Weight-Tool-Use-Agent-for-Public-Services-MCP-GRPO-`
-4. Hugging Face will automatically read `app.py` and `requirements.txt` and host your live interactive demo for free.
+### 1. Free Web App on Hugging Face Spaces (ZeroGPU Free Tier)
+The app is natively configured for Gradio on Hugging Face Spaces:
+👉 [https://huggingface.co/spaces/mahirlokare/civic-mcp-agent](https://huggingface.co/spaces/mahirlokare/civic-mcp-agent)
 
-### 2. Free Web App on Streamlit Community Cloud
-1. Go to [share.streamlit.io](https://share.streamlit.io/) and sign in with GitHub.
-2. Select your repository: `Mahirlokare/RL-Trained-Open-Weight-Tool-Use-Agent-for-Public-Services-MCP-GRPO-`.
-3. Set the Main file path to `app.py` and click **Deploy**.
-
-### 3. Free GPU Training on Google Colab
+### 2. Free GPU Training on Google Colab
 Click the badge below to run the complete training pipeline on a free Google Colab GPU:
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Mahirlokare/RL-Trained-Open-Weight-Tool-Use-Agent-for-Public-Services-MCP-GRPO-/blob/main/notebooks/train_grpo_colab.ipynb)
@@ -106,8 +99,8 @@ python run_eval.py
 # Run the live interactive terminal demo
 python demo.py
 
-# Launch the Streamlit Web UI locally
-streamlit run app.py
+# Launch the Gradio Web UI locally
+python app.py
 ```
 
 ---

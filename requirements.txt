@@ -1,9 +1,6 @@
-# Web UI and MCP Agent Runtime (for Hugging Face Spaces & Streamlit Cloud)
-streamlit>=1.35.0
+# Web UI and MCP Agent Runtime (for Hugging Face Spaces Gradio / ZeroGPU)
+gradio>=4.20.0
 fastapi>=0.110.0
 uvicorn>=0.28.0
 pydantic>=2.6.0
 requests>=2.31.0
-
-# GPU Post-Training & Reinforcement Learning (Installed in Colab notebook)
-# For Colab / GPU machines, run: pip install trl peft transformers accelerate bitsandbytes
