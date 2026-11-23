@@ -257,7 +257,7 @@ def search_schemes_explorer(query: str, category_filter: str):
                 ", ".join(s["required_docs"]),
                 s["helpline"],
                 s["official_portal"],
-                s["last_verified"]
+                s.get("last_verified", s.get("verified_as_of", "2026-11"))
             ])
     return results
 
@@ -470,7 +470,7 @@ custom_css = """
 .pill-demo { background-color: #fef3c7; color: #92400e; }
 """
 
-with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)", css=custom_css) as demo:
+with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)") as demo:
     gr.Markdown("# 🏛️ Civic AI: Universal Public Services Agent (MCP + GRPO)")
     gr.Markdown(
         "A systems-grade open-weight reasoning agent post-trained with **Group Relative Policy Optimization (GRPO)** "
@@ -576,7 +576,7 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
             for k, s in SCHEMES_DB.items():
                 initial_rows.append([
                     s["id"], s["name"], s["category"], f"Rs. {s['benefit_amount']:,}",
-                    ", ".join(s["required_docs"]), s["helpline"], s["official_portal"], s["last_verified"]
+                    ", ".join(s["required_docs"]), s["helpline"], s["official_portal"], s.get("last_verified", s.get("verified_as_of", "2026-11"))
                 ])
 
             scheme_table = gr.Dataframe(
@@ -839,4 +839,4 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
             run_btn.click(fn=execute_agent_workflow, inputs=[query_input, policy_radio, doc_upload], outputs=[status_output, final_ans_output, trace_output], api_name="run_agent")
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+    demo.launch(server_name="0.0.0.0", server_port=7860, css=custom_css)
