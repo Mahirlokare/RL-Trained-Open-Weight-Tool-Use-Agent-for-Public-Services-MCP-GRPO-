@@ -72,13 +72,13 @@ def test_idempotent_replay_on_stateful_write():
         "citizen_name": "Ramesh Patil",
         "scheme_id": "PM_KISAN"
     }
-    # First call
-    res1 = hub.execute_call("book_appointment", args)
+    # First call with authorized administrative role
+    res1 = hub.execute_call("book_appointment", args, client_role="official")
     assert res1["isError"] is False
     token1 = json.loads(res1["content"][0]["text"])["booking_reference"]
 
     # Second call with identical arguments
-    res2 = hub.execute_call("book_appointment", args)
+    res2 = hub.execute_call("book_appointment", args, client_role="official")
     assert res2["isError"] is False
     assert res2.get("idempotentReplay") is True
     token2 = json.loads(res2["content"][0]["text"])["booking_reference"]

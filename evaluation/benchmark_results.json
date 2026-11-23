@@ -1,5 +1,5 @@
 {
-  "benchmark_timestamp": "2026-11-23T16:51:03Z",
+  "benchmark_timestamp": "2026-11-23T18:21:53Z",
   "held_out_tasks_count": 5,
   "empirical_results": {
     "active_policy": {
@@ -9,7 +9,7 @@
       "pass_rate_pct": 100.0,
       "passed_count": 5,
       "avg_turns": 4.8,
-      "avg_latency_sec": 0.001,
+      "avg_latency_sec": 0.003,
       "task_breakdown": [
         {
           "task_id": "eval-pmmvy-01",

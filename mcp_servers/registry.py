@@ -117,12 +117,18 @@ class MCPToolServer:
                 "content": [{"type": "text", "text": validation_err}]
             }
 
-        # 3. Least-privilege Scope Permission check
+        # 3. Least-privilege Scope Permission check (FAIL-CLOSED)
         required_scope = self.scopes.get(name, "read:public")
         confirmation_token = arguments.get("confirmation_token")
-        authorized, perm_msg = self.security.verify_permission(required_scope, client_role, confirmation_token)
-        if not authorized and required_scope.startswith("admin:"):
-            logger.warning(f"Access Denied: Role '{client_role}' lacked scope '{required_scope}' for '{name}'")
+        authorized, perm_msg = self.security.verify_permission(
+            required_scope, 
+            client_role, 
+            confirmation_token, 
+            operation=name, 
+            arguments=arguments
+        )
+        if not authorized:
+            logger.warning(f"Access Denied: Role '{client_role}' lacked scope '{required_scope}' for '{name}': {perm_msg}")
             return {
                 "isError": True,
                 "permissionDenied": True,

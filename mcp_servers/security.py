@@ -10,6 +10,7 @@ Implements:
 from typing import Dict, Any, Tuple, Optional, List
 import os
 import re
+import json
 import hashlib
 import time
 import logging
@@ -68,49 +69,81 @@ class SecurityPolicyEngine:
         self, 
         tool_scope: str, 
         client_role: str = "citizen",
-        confirmation_token: Optional[str] = None
+        confirmation_token: Optional[str] = None,
+        operation: Optional[str] = None,
+        arguments: Optional[Dict[str, Any]] = None
     ) -> Tuple[bool, str]:
         """
-        Enforces least-privilege tool execution policies across scopes.
-        Ordinary citizen roles require verified stateful confirmation for write operations.
+        Enforces strict least-privilege tool execution policies across scopes (FAIL-CLOSED).
+        Ordinary citizen roles require verified, unconsumed, operation-bound confirmation for write operations.
         """
         # Read and verification operations are authorized for all citizens
         if tool_scope.startswith("read:") or tool_scope.startswith("verify:"):
             return True, "Authorized"
         
-        # Write operations (e.g. appointment booking, SMS dispatch)
-        if tool_scope.startswith("write:"):
-            # Officials or verified credential holders have direct write scope
-            if client_role in ["official", "verified_agent"]:
-                return True, "Authorized with administrative credentials"
-            
-            # Ordinary citizens MUST supply an active, valid confirmation token
-            if confirmation_token and confirmation_token in self.active_confirmation_tokens:
-                token_data = self.active_confirmation_tokens[confirmation_token]
-                # Check expiration (valid for 10 minutes)
-                if time.time() - token_data["created_at"] <= 600:
-                    return True, "Authorized via explicit citizen confirmation token"
-                else:
-                    return False, "Permission Denied: Confirmation token expired. Please re-initiate confirmation."
-            
-            # If no confirmation token, return requirement
-            return False, f"Confirmation Required: Stateful operation '{tool_scope}' requires explicit citizen confirmation token."
-
         # Administrative / Internal scopes
         if tool_scope.startswith("admin:"):
-            if client_role == "official":
-                return True, "Authorized"
+            if client_role in ["official", "admin"]:
+                return True, "Authorized with administrative credentials"
             return False, f"Permission Denied: Scope '{tool_scope}' requires administrative privilege."
 
-        return True, "Authorized"
+        # Write operations (e.g. appointment booking, SMS dispatch)
+        if tool_scope.startswith("write:"):
+            # Officials, verified backend agents, or system services have direct write scope
+            if client_role in ["official", "verified_agent", "system"]:
+                return True, "Authorized with verified execution credentials"
+            
+            # Ordinary citizens MUST supply an active, valid, operation-bound confirmation token
+            if not confirmation_token:
+                return False, f"Permission Denied: Stateful write operation '{tool_scope}' requires explicit citizen confirmation token. Unauthorized write blocked."
+            
+            if confirmation_token not in self.active_confirmation_tokens:
+                return False, "Permission Denied: Invalid or unrecognized confirmation token."
+                
+            token_data = self.active_confirmation_tokens[confirmation_token]
+            
+            # Check if token was already consumed (Replay prevention)
+            if token_data.get("consumed", False):
+                return False, "Permission Denied: Confirmation token has already been consumed (Replay Attack Blocked)."
+                
+            # Check expiration (valid for TTL)
+            if time.time() - token_data["created_at"] > token_data.get("ttl", 600.0):
+                return False, "Permission Denied: Confirmation token expired. Please re-initiate confirmation."
+                
+            # Check operation binding
+            if operation and token_data.get("operation") != operation:
+                return False, f"Permission Denied: Confirmation token issued for operation '{token_data.get('operation')}', not '{operation}'."
+                
+            # Check parameter binding integrity
+            if arguments is not None and "param_digest" in token_data:
+                clean_args = {k: v for k, v in arguments.items() if k != "confirmation_token"}
+                current_digest = hashlib.sha256(json.dumps(clean_args, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+                if current_digest != token_data["param_digest"]:
+                    return False, "Permission Denied: Operation parameters altered since confirmation token was issued (Integrity Violation)."
+            
+            # Atomically consume the token
+            token_data["consumed"] = True
+            return True, "Authorized via verified operation-bound confirmation token"
 
-    def issue_confirmation_token(self, operation: str, preview_data: Dict[str, Any]) -> str:
-        """Generates a stateful cryptographic confirmation token for citizen review."""
-        token_id = f"CONFIRM-{hashlib.sha256(f'{operation}:{time.time()}:{str(preview_data)}'.encode()).hexdigest()[:8].upper()}"
+        return False, f"Permission Denied: Unrecognized scope '{tool_scope}'."
+
+    def issue_confirmation_token(self, operation: str, preview_data: Dict[str, Any], ttl_seconds: float = 600.0) -> str:
+        """
+        Generates an operation-bound and parameter-bound cryptographic confirmation token.
+        Computes SHA-256 digest over normalized operation and parameters.
+        """
+        normalized_params = json.dumps(preview_data, sort_keys=True, ensure_ascii=False)
+        param_digest = hashlib.sha256(normalized_params.encode("utf-8")).hexdigest()
+        token_entropy = hashlib.sha256(f"{operation}:{time.time()}:{param_digest}".encode("utf-8")).hexdigest()[:12].upper()
+        token_id = f"CONFIRM-{token_entropy}"
+        
         self.active_confirmation_tokens[token_id] = {
             "operation": operation,
             "preview": preview_data,
-            "created_at": time.time()
+            "param_digest": param_digest,
+            "created_at": time.time(),
+            "ttl": ttl_seconds,
+            "consumed": False
         }
         return token_id
 

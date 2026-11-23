@@ -18,12 +18,14 @@ class MCPAgentRuntime:
         mcp_hub: MCPHub, 
         model_fn: Callable[[List[Dict[str, str]]], str], 
         max_iterations: int = 6,
-        max_tool_chars: int = 1200
+        max_tool_chars: int = 1200,
+        client_role: str = "verified_agent"
     ):
         self.hub = mcp_hub
         self.model_fn = model_fn
         self.max_iterations = max_iterations
         self.max_tool_chars = max_tool_chars
+        self.client_role = client_role
         self.system_prompt = format_system_prompt(self.hub.get_all_tools())
 
     def summarize_and_truncate(self, raw_result: Dict[str, Any]) -> str:
@@ -66,7 +68,7 @@ class MCPAgentRuntime:
 
             # If tool call exists, execute via MCP Hub with context handling
             if tool_call:
-                tool_exec_result = self.hub.execute_call(tool_call.name, tool_call.arguments)
+                tool_exec_result = self.hub.execute_call(tool_call.name, tool_call.arguments, client_role=self.client_role)
                 tool_result_obj = ToolResult(
                     tool_name=tool_call.name,
                     output=tool_exec_result,

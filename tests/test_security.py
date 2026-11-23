@@ -78,3 +78,89 @@ def test_fake_id_rejected_at_tool_layer():
     assert payload["document_verified"] is False
     assert "XXXX-XXXX-9012" in payload["extracted_fields"]["id_detected"]
     assert payload["extracted_fields"]["verhoeff_checksum"] == "FAILED (Invalid Checksum)"
+
+def test_unauthorized_write_scope_blocked_fail_closed():
+    """P0 Security Test: Verifies that unauthorized write actions are blocked and NEVER reach the handler."""
+    hub = create_default_mcp_hub()
+    # Ordinary citizen attempts write without confirmation token
+    res = hub.execute_call("book_appointment", {
+        "center_id": "SEVA_PUNE_NORTH",
+        "slot_time": "2026-12-05 10:00 AM",
+        "citizen_name": "Devidas",
+        "scheme_id": "PM_KISAN"
+    }, client_role="citizen")
+    
+    assert res.get("isError") is True
+    assert res.get("permissionDenied") is True
+    assert "Permission Denied" in res["content"][0]["text"]
+
+def test_operation_and_parameter_bound_confirmation():
+    """Verifies that an operation-bound token allows authorized execution when parameters match."""
+    hub = create_default_mcp_hub()
+    args = {
+        "center_id": "SEVA_PUNE_NORTH",
+        "slot_time": "2026-12-05 10:00 AM",
+        "citizen_name": "Devidas",
+        "scheme_id": "PM_KISAN"
+    }
+    # 1. Request hold to get bound token
+    hold_res = hub.execute_call("request_appointment_hold", args, client_role="citizen")
+    assert hold_res.get("isError") is False
+    hold_data = json.loads(hold_res["content"][0]["text"])
+    token = hold_data["confirmation_token"]
+    assert token.startswith("CONFIRM-")
+
+    # 2. Execute with valid token and matching parameters -> MUST SUCCEED
+    args_with_token = dict(args)
+    args_with_token["confirmation_token"] = token
+    book_res = hub.execute_call("book_appointment", args_with_token, client_role="citizen")
+    assert book_res.get("isError") is False
+    book_data = json.loads(book_res["content"][0]["text"])
+    assert book_data["status"] == "CONFIRMED"
+
+def test_replay_attack_prevention():
+    """Verifies that a confirmation token cannot be reused/replayed after consumption."""
+    hub = create_default_mcp_hub()
+    args = {
+        "center_id": "SEVA_PUNE_NORTH",
+        "slot_time": "2026-12-05 10:00 AM",
+        "citizen_name": "Devidas",
+        "scheme_id": "PM_KISAN"
+    }
+    hold_res = hub.execute_call("request_appointment_hold", args, client_role="citizen")
+    token = json.loads(hold_res["content"][0]["text"])["confirmation_token"]
+
+    # First use -> Authorized
+    args_with_token = dict(args)
+    args_with_token["confirmation_token"] = token
+    res1 = hub.execute_call("book_appointment", args_with_token, client_role="citizen")
+    assert res1.get("isError") is False
+
+    # Second use (Replay Attack) -> MUST BE DENIED
+    res2 = hub.execute_call("book_appointment", args_with_token, client_role="citizen")
+    assert res2.get("isError") is True
+    assert res2.get("permissionDenied") is True
+    assert "already been consumed" in res2["content"][0]["text"]
+
+def test_tampered_parameter_write_denied():
+    """Verifies that altering parameters after token issuance triggers integrity denial."""
+    hub = create_default_mcp_hub()
+    args = {
+        "center_id": "SEVA_PUNE_NORTH",
+        "slot_time": "2026-12-05 10:00 AM",
+        "citizen_name": "Devidas",
+        "scheme_id": "PM_KISAN"
+    }
+    hold_res = hub.execute_call("request_appointment_hold", args, client_role="citizen")
+    token = json.loads(hold_res["content"][0]["text"])["confirmation_token"]
+
+    # Attacker alters the citizen_name to Ramesh Patil
+    tampered_args = dict(args)
+    tampered_args["citizen_name"] = "Ramesh Patil"
+    tampered_args["confirmation_token"] = token
+
+    tamper_res = hub.execute_call("book_appointment", tampered_args, client_role="citizen")
+    assert tamper_res.get("isError") is True
+    assert tamper_res.get("permissionDenied") is True
+    assert "parameters altered" in tamper_res["content"][0]["text"]
+

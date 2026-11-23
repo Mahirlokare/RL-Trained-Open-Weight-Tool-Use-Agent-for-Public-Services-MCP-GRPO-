@@ -28,7 +28,7 @@ All artificial metrics, simulated training curves, hardcoded citizen demographic
 | **F. MCP Architecture** | Tools were monolithic local functions labeled as MCP. | Refactored into standard JSON-RPC 2.0 servers in `mcp_servers/` (`scheme-service`, `ocr-service`, `eligibility-service`, `appointment-service`, `notification-service`). | Live execution console in `🛠️ MCP Tool Monitor` (0.85 ms latency). |
 | **G. Simulated Integrations** | Booking and SMS returned fake success without confirmation holds. | Stateful two-step reservation token (`CONFIRM-XXXXXX`) required for bookings; SMS requires citizen consent and tracks local vs. carrier delivery. | Verified in `tests/test_mcp_servers.py` and `tests/test_e2e_workflows.py`. |
 | **H. Fabricated Citizen Data** | Fallback phone numbers (`9822334455`) and default age (30) / income (100k). | Removed all fallback citizen data. Missing parameters return `INCOMPLETE_INFORMATION` with specific missing fields. | Tested on live Space; rejects missing fields with schema errors. |
-| **I. Security & Permissions** | Permissive write scopes; regex-only injection scanner. | Implemented 3-layer security engine in `mcp_servers/security.py` (regex, structural delimiters `<|im_start|>`, override density) and least-privilege RBAC. | 7 dedicated security tests passing in `tests/test_security.py`. |
+| **I. Security & Permissions (P0 Fix)** | Permissive write scopes; fail-open check in registry allowing unauthorized writes. | Fixed P0 authorization flaw: Enforced strict fail-closed scope checking (`if not authorized: return permissionDenied`). Implemented operation-bound, parameter-bound confirmation tokens (SHA-256 digest, atomic consumption, replay blocking, 10-min TTL). Added 3-layer injection defense. | 11 dedicated security tests passing in `tests/test_security.py` covering fail-closed write blocks, replay attacks, parameter tampering, and token expiration. |
 | **J. Internal Reasoning Leakage** | Raw `<think>` blocks displayed in user chat interface. | Filtered internal thought strings in `app.py` before emitting to chatbot UI; created collapsible operational tool traces. | Verified with browser subagent on live deployment (`hasRawThink: false`). |
 | **K. Government Information** | Hardcoded data without provenance or freshness. | Added nodal ministry attribution, official `.gov.in` portals, toll-free helplines, and freshness timestamps (`verified_as_of: "2026-11"`). | Verified in `📚 Government Scheme Explorer` table. |
 
@@ -68,15 +68,15 @@ rootdir: C:\Users\Admin\.gemini\antigravity\scratch\rl-mcp-agent
 configfile: pytest.ini
 testpaths: tests
 plugins: anyio-4.8.0
-collected 25 items
+collected 29 items
 
-tests\test_e2e_workflows.py ....                                         [ 16%]
-tests\test_mcp_servers.py ......                                         [ 40%]
-tests\test_rewards.py ....                                               [ 56%]
-tests\test_schemas_and_parser.py ....                                    [ 72%]
-tests\test_security.py .......                                           [100%]
+tests\test_e2e_workflows.py ....                                         [ 13%]
+tests\test_mcp_servers.py ......                                         [ 34%]
+tests\test_rewards.py ....                                               [ 48%]
+tests\test_schemas_and_parser.py ....                                    [ 62%]
+tests\test_security.py ...........                                       [100%]
 
-============================= 25 passed in 0.37s ==============================
+============================= 29 passed in 0.35s ==============================
 ```
 
 ### Empirical Policy Audit Result:
@@ -112,7 +112,7 @@ python training/verify_rl_policy.py
 - [x] **Valid research evaluation:** Comparative benchmarks with honest **NOT RUN** markers for cluster baselines.
 - [x] **Reliable persistence:** In-memory stateful holds, session audit logging, and JSON exportable telemetry.
 - [x] **Robust error handling:** Graceful exception recovery across all tools and agent turns.
-- [x] **Automated tests:** 25/25 Pytest unit, integration, and security tests passing.
+- [x] **Automated tests:** 29/29 Pytest unit, integration, and security tests passing.
 - [x] **Security validation:** 3-layer prompt injection detection, PII masking, and red-team test suite.
 - [x] **Successful deployment:** Live Hugging Face Space running container on port 7860 with SSR proxy.
 - [x] **Live application verification:** Verified live via browser automation across chat, tools, eligibility, and tabs.

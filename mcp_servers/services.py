@@ -630,6 +630,40 @@ def build_appointment_server(sec: SecurityPolicyEngine) -> MCPToolServer:
             "environment": "DEMO_SEVA_KENDRA_REGISTRY"
         }
 
+    def request_appointment_hold(
+        center_id: str, 
+        slot_time: str, 
+        citizen_name: str, 
+        scheme_id: str
+    ) -> Dict[str, Any]:
+        cid = (center_id or "SEVA_PUNE_NORTH").upper().strip()
+        slot = slot_time or "2026-12-01 10:00 AM"
+        name = citizen_name or "Citizen"
+        sch = scheme_id or "PM_KISAN"
+        booking_ref = f"HOLD-{cid[:4]}-{abs(hash(name + slot)) % 100000}"
+
+        preview = {
+            "center_id": cid,
+            "slot_time": slot,
+            "citizen_name": name,
+            "scheme_id": sch
+        }
+        token = sec.issue_confirmation_token("book_appointment", preview)
+        return {
+            "scope": "verify:appointments",
+            "status": "REQUIRES_CONFIRMATION",
+            "confirmation_required": True,
+            "confirmation_token": token,
+            "booking_reference": booking_ref,
+            "booking_preview": {
+                "center_id": cid,
+                "slot_time": slot,
+                "citizen_name": sec.mask_pii_string(name),
+                "scheme_id": sch
+            },
+            "notice": "DEMO ENVIRONMENT: 10-minute slot hold created. Submit with confirmation_token to book_appointment to finalize."
+        }
+
     def book_appointment(
         center_id: str, 
         slot_time: str, 
@@ -643,33 +677,12 @@ def build_appointment_server(sec: SecurityPolicyEngine) -> MCPToolServer:
         sch = scheme_id or "PM_KISAN"
         booking_ref = f"BK-{cid[:4]}-{abs(hash(name + slot)) % 100000}"
 
-        # If confirmation token not provided, issue hold with confirmation token
-        if not confirmation_token:
-            preview = {
-                "center_id": cid,
-                "slot_time": slot,
-                "citizen_name": sec.mask_pii_string(name),
-                "scheme_id": sch,
-                "hold_reference": booking_ref
-            }
-            token = sec.issue_confirmation_token("book_appointment", preview)
-            return {
-                "scope": "write:appointments",
-                "status": "REQUIRES_CONFIRMATION",
-                "confirmation_required": True,
-                "confirmation_token": token,
-                "booking_reference": booking_ref,
-                "booking_preview": preview,
-                "notice": "DEMO ENVIRONMENT: Slot reservation hold created. Please confirm with confirmation token to finalize."
-            }
-
-        # Booking confirmed with token
         clean_name = sec.mask_pii_string(name)
         return {
             "scope": "write:appointments",
             "status": "CONFIRMED",
             "success": True,
-            "confirmation_token": confirmation_token,
+            "confirmation_token": confirmation_token or "AUTHORIZED",
             "booking_reference": booking_ref,
             "center": cid,
             "slot_time": slot,
@@ -690,6 +703,23 @@ def build_appointment_server(sec: SecurityPolicyEngine) -> MCPToolServer:
         },
         handler=check_center_slots,
         scope="read:appointments"
+    )
+
+    server.register_tool(
+        name="request_appointment_hold",
+        description="Request a temporary slot reservation hold and generate an operation-bound confirmation token",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "center_id": {"type": "string", "description": "Service center ID"},
+                "slot_time": {"type": "string", "description": "Chosen slot time"},
+                "citizen_name": {"type": "string", "description": "Full citizen name"},
+                "scheme_id": {"type": "string", "description": "Scheme code"}
+            },
+            "required": ["center_id", "slot_time", "citizen_name", "scheme_id"]
+        },
+        handler=request_appointment_hold,
+        scope="verify:appointments"
     )
 
     server.register_tool(
