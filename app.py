@@ -461,7 +461,7 @@ with gr.Blocks(title="Civic AI - Universal Public Services MCP Agent") as demo:
             - **Schema & Syntax Validity:** `100.0%`
             - **Redundant Looping Penalty:** `0.0 (Zero Infinite Loops Guaranteed)`
             - **Verified MCP Servers:** `scheme-service`, `ocr-service`, `eligibility-service`, `appointment-service`, `notification-service`
-            """)
+            """, latex_delimiters=[{"left": "$$", "right": "$$", "display": True}, {"left": "$", "right": "$", "display": False}])
 
             if TRAIN_METRICS_SAMPLE:
                 metric_rows = []
@@ -491,7 +491,7 @@ with gr.Blocks(title="Civic AI - Universal Public Services MCP Agent") as demo:
 
             The objective maximizes advantage while bounding drift via KL divergence against the reference policy $\pi_{\text{ref}}$:
             $$\mathcal{L}_{\text{GRPO}}(\theta) = \mathbb{E} \left[ \frac{1}{G} \sum_{i=1}^G \min \left( \frac{\pi_\theta(o_i|q)}{\pi_{\text{old}}(o_i|q)} A_i, \text{clip} \left( \frac{\pi_\theta(o_i|q)}{\pi_{\text{old}}(o_i|q)}, 1-\epsilon, 1+\epsilon \right) A_i \right) - \beta D_{\text{KL}}(\pi_\theta \| \pi_{\text{ref}}) \right]$$
-            """)
+            """, latex_delimiters=[{"left": "$$", "right": "$$", "display": True}, {"left": "$", "right": "$", "display": False}])
 
         # TAB 7: 6-Way Ablation Benchmark
         with gr.TabItem("📊 6-Way Ablation Benchmark"):
