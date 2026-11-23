@@ -1,6 +1,6 @@
 {
   "suite": "Model Context Protocol (MCP) Tool Execution Verification",
-  "timestamp": "2026-11-23T21:19:25Z",
+  "timestamp": "2026-11-23T21:28:40Z",
   "total_tools_tested": 7,
   "all_passed": true,
   "security_policy_enforced": true,
@@ -9,7 +9,7 @@
     {
       "tool": "search_schemes",
       "server": "scheme-service",
-      "latency_ms": 1.1,
+      "latency_ms": 2.66,
       "status": "PASSED",
       "passed": true,
       "verified_scope": "read:schemes"
@@ -17,7 +17,7 @@
     {
       "tool": "get_scheme_details",
       "server": "scheme-service",
-      "latency_ms": 0.07,
+      "latency_ms": 0.63,
       "status": "PASSED",
       "passed": true,
       "verified_scope": "read:schemes"
@@ -25,7 +25,7 @@
     {
       "tool": "verify_eligibility",
       "server": "eligibility-service",
-      "latency_ms": 0.06,
+      "latency_ms": 0.56,
       "status": "PASSED",
       "passed": true,
       "verified_scope": "verify:eligibility"
@@ -33,7 +33,7 @@
     {
       "tool": "scan_document_ocr",
       "server": "ocr-service",
-      "latency_ms": 1.11,
+      "latency_ms": 1.4,
       "status": "PASSED",
       "passed": true,
       "verified_scope": "read:ocr"
@@ -41,7 +41,7 @@
     {
       "tool": "check_center_slots",
       "server": "appointment-service",
-      "latency_ms": 0.03,
+      "latency_ms": 0.37,
       "status": "PASSED",
       "passed": true,
       "verified_scope": "read:appointments"
@@ -49,7 +49,7 @@
     {
       "tool": "book_appointment",
       "server": "appointment-service",
-      "latency_ms": 0.05,
+      "latency_ms": 0.18,
       "status": "PASSED",
       "passed": true,
       "verified_scope": "write:appointments"
@@ -57,7 +57,7 @@
     {
       "tool": "send_confirmation_sms",
       "server": "notification-service",
-      "latency_ms": 0.04,
+      "latency_ms": 0.31,
       "status": "PASSED",
       "passed": true,
       "verified_scope": "write:sms"

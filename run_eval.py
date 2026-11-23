@@ -98,6 +98,9 @@ def dapo_policy(messages: List[Dict[str, str]]) -> str:
 def grpo_policy(messages: List[Dict[str, str]]) -> str:
     return dynamic_rl_agent_policy(messages)
 
+# Alias for external demonstrators
+rl_trained_policy = grpo_policy
+
 def main():
     test_file = os.path.join(os.path.dirname(__file__), "evaluation", "test_cases.json")
     suite = BenchmarkSuite(test_file)
