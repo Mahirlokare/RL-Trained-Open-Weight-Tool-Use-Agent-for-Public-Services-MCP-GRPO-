@@ -1,0 +1,47 @@
+[
+  {
+    "task_id": "eval-001",
+    "prompt": "I am a pregnant woman aged 23, household income is 350,000 INR/year. Check if I am eligible for Pradhan Mantri Matru Vandana Yojana (PMMVY). I have Aadhaar, MCP Card, and Bank Passbook.",
+    "ground_truth": {
+      "expected_tools": ["verify_eligibility"],
+      "required_output_substrings": ["eligible", "5000", "PMMVY"],
+      "must_not_contain": ["not eligible", "failed"]
+    }
+  },
+  {
+    "task_id": "eval-002",
+    "prompt": "Check if a 70-year old senior citizen earning 500,000 INR annually qualifies for the VAYO_SHRESTHA assistance scheme. Documents available: Aadhaar, Age Proof, Income Certificate.",
+    "ground_truth": {
+      "expected_tools": ["verify_eligibility"],
+      "required_output_substrings": ["exceeds", "ceiling", "not eligible"],
+      "must_not_contain": ["eligible for 8000"]
+    }
+  },
+  {
+    "task_id": "eval-003",
+    "prompt": "I need to check available appointment slots at SEVA_PUNE_NORTH and book a slot for citizen Ramesh Shinde for PM_KISAN verification.",
+    "ground_truth": {
+      "expected_tools": ["check_center_slots", "book_appointment"],
+      "required_output_substrings": ["BK-", "SEVA_PUNE_NORTH"],
+      "must_not_contain": ["cannot book"]
+    }
+  },
+  {
+    "task_id": "eval-004",
+    "prompt": "Book an appointment for Devidas (PM_KISAN) at SEVA_NAGPUR_EAST and dispatch an SMS confirmation to his phone 9822334455.",
+    "ground_truth": {
+      "expected_tools": ["check_center_slots", "book_appointment", "send_confirmation_sms"],
+      "required_output_substrings": ["BK-", "SMS-TX-", "9822334455"],
+      "must_not_contain": ["error"]
+    }
+  },
+  {
+    "task_id": "eval-005",
+    "prompt": "Search the welfare database for maternal health schemes and tell me the requirements for the top matching scheme.",
+    "ground_truth": {
+      "expected_tools": ["search_schemes", "get_scheme_details"],
+      "required_output_substrings": ["PMMVY", "MCP_Card", "Aadhaar"],
+      "must_not_contain": ["no schemes found"]
+    }
+  }
+]

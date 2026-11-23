@@ -1,0 +1,20 @@
+{
+  "baseline": {
+    "policy": "Baseline (Zero-Shot Prompting)",
+    "tasks_evaluated": 5,
+    "pass_rate_pct": 0.0,
+    "tool_call_validity_pct": 0.0,
+    "avg_steps": 3.8,
+    "p95_latency_sec": 0.0,
+    "estimated_cost_per_1k_tasks_usd": 3.8
+  },
+  "rl_agent": {
+    "policy": "RL-Trained Agent (GRPO + MCP)",
+    "tasks_evaluated": 5,
+    "pass_rate_pct": 80.0,
+    "tool_call_validity_pct": 100.0,
+    "avg_steps": 7.0,
+    "p95_latency_sec": 0.0,
+    "estimated_cost_per_1k_tasks_usd": 0.42
+  }
+}

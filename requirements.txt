@@ -1,0 +1,17 @@
+# Core Runtime & Standard Libraries
+fastapi>=0.110.0
+uvicorn>=0.28.0
+pydantic>=2.6.0
+requests>=2.31.0
+
+# Post-Training & Reinforcement Learning (for GPU / Colab training)
+torch>=2.2.0
+transformers>=4.48.0
+peft>=0.10.0
+trl>=0.14.0
+accelerate>=0.28.0
+bitsandbytes>=0.43.0
+
+# Optional High-Throughput Serving & LoRA Acceleration
+# unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git
+# vllm>=0.6.0
