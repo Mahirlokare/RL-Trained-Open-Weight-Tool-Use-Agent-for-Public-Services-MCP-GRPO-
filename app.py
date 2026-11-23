@@ -5,10 +5,23 @@ Interactive Public Services AI Agent with MCP Tool Introspection & Evaluation.
 import gradio as gr
 import json
 import time
+
+try:
+    import spaces
+    HAS_SPACES = True
+except ImportError:
+    HAS_SPACES = False
+
 from mcp_servers.services import create_default_mcp_hub
 from agent.runtime import MCPAgentRuntime
 from run_eval import rl_trained_policy, naive_prompting_policy
 
+def gpu_handler(fn):
+    if HAS_SPACES:
+        return spaces.GPU(fn)
+    return fn
+
+@gpu_handler
 def execute_agent_workflow(user_query: str, policy_mode: str):
     if not user_query.strip():
         return "⚠️ Please enter a citizen request.", "N/A", "No query provided."
