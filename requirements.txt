@@ -1,5 +1,6 @@
 # Web UI and MCP Agent Runtime (for Hugging Face Spaces Gradio / ZeroGPU)
-gradio>=4.20.0
+gradio
+huggingface_hub<1.0.0
 fastapi>=0.110.0
 uvicorn>=0.28.0
 pydantic>=2.6.0
