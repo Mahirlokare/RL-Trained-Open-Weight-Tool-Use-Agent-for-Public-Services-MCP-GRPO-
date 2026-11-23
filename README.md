@@ -1,3 +1,14 @@
+---
+title: Civic Mcp Agent
+emoji: 🏛️
+colorFrom: blue
+colorTo: indigo
+sdk: streamlit
+app_file: app.py
+pinned: false
+license: mit
+---
+
 # RL-Trained Open-Weight Tool-Use Agent for Public Services (MCP + GRPO)
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Mahirlokare/RL-Trained-Open-Weight-Tool-Use-Agent-for-Public-Services-MCP-GRPO-/blob/main/notebooks/train_grpo_colab.ipynb)
