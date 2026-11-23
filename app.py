@@ -494,8 +494,8 @@ def run_grpo_pipeline_action():
         status = (
             f"### ✅ GRPO Group Relative Advantage Verified\n"
             f"- **Base Model Architecture:** `Qwen2.5-7B-Instruct`\n"
-            f"- **Group Size ($G$):** `4 candidate completions per prompt`\n"
-            f"- **Relative Advantage Calculation:** $A_i = \\frac{{R_i - \\bar{{R}}}}{{\\sigma(R) + \\epsilon}}$\n"
+            f"- **Group Size (G):** `4 candidate completions per prompt`\n"
+            f"- **Relative Advantage Formula:** `A_i = (R_i - mean(R)) / (std(R) + eps)`\n"
             f"- **Empirical Telemetry File:** `{res.get('telemetry_file')}`"
         )
         with open(res.get("telemetry_file"), "r", encoding="utf-8") as f:
@@ -827,9 +827,9 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
                     gr.Markdown("""
                     ### ⚡ 2. GRPO Post-Training Pipeline
                     - **Algorithm:** Group Relative Policy Optimization (GRPO)
-                    - **Group Size ($G$):** 4 candidate completions per prompt
-                    - **Relative Advantage Formula:** $A_i = \\frac{R_i - \\bar{R}}{\\sigma(R) + \\epsilon}$
-                    - **KL Regularization Penalty:** $\\beta_{KL} = 0.04$
+                    - **Group Size (G):** 4 candidate completions per prompt
+                    - **Relative Advantage Formula:** `A_i = (R_i - mean(R)) / (std(R) + eps)`
+                    - **KL Regularization Penalty:** `beta_kl = 0.04`
                     - **Programmatic Verifiers:** Format, Schema, Outcome, Loop Penalty
                     """)
                     grpo_launch_btn = gr.Button("⚡ Run GRPO Group Advantage Pipeline", variant="secondary")
