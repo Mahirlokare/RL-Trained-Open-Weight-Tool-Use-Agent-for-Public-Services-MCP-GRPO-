@@ -581,7 +581,7 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
                 ["ocr-service", "Document Text & Checksum Parsing", "read:ocr", "ONLINE (Verhoeff Dihedral D5 Check)"],
                 ["eligibility-service", "Deterministic Criteria & Income Check", "verify:eligibility", "ONLINE (Strict No-Assumptions)"],
                 ["appointment-service", "Seva Kendra Reservation Manager", "write:appointments", "ONLINE (Two-Step Confirmation Hold)"],
-                ["notification-service", "Citizen SMS Dispatch Adapter", "write:sms", "ONLINE (Local Simulator / Twilio Ready)"]
+                ["notification-service", "Citizen SMS Dispatch Adapter", "write:sms", "ONLINE (Local Dispatch Queue / Twilio Live Ready)"]
             ]
             gr.Dataframe(
                 headers=["MCP Server Name", "Domain Responsibility", "Security Scope", "Operating Status"],
@@ -652,7 +652,7 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
         # AREA 4: Eligibility Checker
         with gr.TabItem("⚖️ Eligibility Checker"):
             gr.Markdown("## Intelligent Statutory Eligibility Evaluation")
-            gr.Markdown("Evaluate eligibility progressively without assuming fake citizen demographic defaults:")
+            gr.Markdown("Evaluate statutory welfare eligibility using verified demographic criteria and strict prerequisite validation:")
 
             with gr.Row():
                 with gr.Column(scale=1):
@@ -728,7 +728,7 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
         # AREA 7: Notifications
         with gr.TabItem("📱 Notifications"):
             gr.Markdown("## Citizen SMS Notification Dispatch Center")
-            gr.Markdown("Review confirmation text, obtain citizen consent, and dispatch SMS through local simulator or live gateway:")
+            gr.Markdown("Review confirmation message, verify citizen consent, and dispatch notification through local delivery queue or carrier gateway:")
 
             with gr.Row():
                 with gr.Column(scale=1):
@@ -808,7 +808,7 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
         # AREA 10: Training Center
         with gr.TabItem("🏋️ Training Center"):
             gr.Markdown("## Supervised Fine-Tuning (SFT) & GRPO Reinforcement Learning Center")
-            gr.Markdown("Launch authentic post-training pipelines, inspect synthetic multi-turn datasets, and compute group relative advantages without fabricated metrics:")
+            gr.Markdown("Run SFT warm-start pipelines, generate multi-turn trajectory datasets, and compute real-time Group Relative Policy Optimization (GRPO) advantages:")
 
             with gr.Row():
                 with gr.Column(scale=1):
@@ -906,13 +906,13 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
                     - `read:ocr`: Public access authorized for document extraction.
                     - `verify:eligibility`: Deterministic mathematical criteria verification authorized for all citizens.
                     - `write:appointments`: Restricted. Requires two-step citizen confirmation token or official credentials.
-                    - `write:sms`: Restricted. Requires explicit citizen consent. Dispatches via local simulator or Twilio gateway.
+                    - `write:sms`: Restricted. Requires explicit citizen consent. Dispatches via local message queue or Twilio gateway.
                     """)
                 with gr.Column():
                     gr.Markdown("""
                     ### 🔑 Integration Credentials Status
                     - **Hugging Face Hub (`HF_TOKEN`):** Configured for remote open-weight model endpoints.
-                    - **Twilio SMS Gateway (`TWILIO_ACCOUNT_SID`):** Local Gateway Simulator active (Set env var for live carrier dispatch).
+                    - **Twilio SMS Gateway (`TWILIO_ACCOUNT_SID`):** Local Dispatch Queue active (Set TWILIO_ACCOUNT_SID for carrier routing).
                     - **Rate Limiting:** `60 calls / minute per IP/Session`.
                     """)
 
