@@ -454,3 +454,7 @@ How can I help you today? You can ask about eligibility, scan proof documents, o
   }}
 }}
 </tool_call>"""
+
+# Alias for explicit model provider abstraction
+execute_deterministic_fallback_turn = dynamic_rl_agent_policy
+

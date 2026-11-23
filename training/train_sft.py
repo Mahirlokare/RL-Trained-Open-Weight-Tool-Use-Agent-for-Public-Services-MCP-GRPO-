@@ -189,6 +189,9 @@ def run_sft_warmstart(args: SFTArguments) -> Dict[str, Any]:
 
     return training_summary
 
+run_sft_pipeline = run_sft_warmstart
+SFTTrainingArguments = SFTArguments
+
 if __name__ == "__main__":
     args = SFTArguments()
     run_sft_warmstart(args)

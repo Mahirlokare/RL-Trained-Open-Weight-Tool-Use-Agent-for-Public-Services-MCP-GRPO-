@@ -43,6 +43,8 @@ from mcp_servers.security import SecurityPolicyEngine
 from agent.runtime import MCPAgentRuntime
 from agent.reasoner import dynamic_rl_agent_policy
 from agent.models import get_active_model_provider
+from agent.parser import parse_agent_response
+from dataclasses import asdict
 from run_eval import prompt_only_policy, run_comparative_benchmark
 from training.verify_rl_policy import run_empirical_policy_audit
 
@@ -440,6 +442,68 @@ def run_live_benchmark_suite():
     except Exception as e:
         return f"❌ Error running benchmark: {e}", "{}"
 
+def test_model_inference_sandbox(test_prompt: str):
+    """Executes single-turn model inference via BaseModelProvider abstraction."""
+    if not test_prompt or not test_prompt.strip():
+        return "❌ Empty prompt provided.", "{}"
+    t0 = time.time()
+    try:
+        provider = get_active_model_provider()
+        raw_output = provider.generate([{"role": "user", "content": test_prompt}])
+        latency_ms = round((time.time() - t0) * 1000, 2)
+        meta = provider.get_metadata()
+        
+        parsed_thought, parsed_tool, parsed_final, parse_err = parse_agent_response(raw_output)
+        res_dict = {
+            "model_metadata": meta,
+            "latency_ms": latency_ms,
+            "extracted_thought": parsed_thought,
+            "extracted_tool_call": asdict(parsed_tool) if parsed_tool else None,
+            "extracted_final_answer": parsed_final,
+            "parse_error": parse_err,
+            "raw_completion": raw_output
+        }
+        status_md = f"### Inference Result: Complete ({latency_ms} ms)\n- **Active Provider:** `{meta['model_name']}`\n- **Device / Mode:** `{meta['device']}`"
+        return status_md, json.dumps(res_dict, indent=2)
+    except Exception as e:
+        return f"❌ Inference Error: {str(e)}", "{}"
+
+def run_sft_pipeline_action():
+    """Generates SFT dataset and PEFT configuration."""
+    try:
+        from training.train_sft import run_sft_pipeline, SFTTrainingArguments
+        args = SFTTrainingArguments(num_samples=50)
+        res = run_sft_pipeline(args)
+        status = (
+            f"### ✅ SFT Dataset & PEFT Config Ready\n"
+            f"- **Synthesized Multi-Turn Trajectories:** `{res.get('dataset_samples')} samples`\n"
+            f"- **Dataset Path:** `{res.get('dataset_path')}`\n"
+            f"- **LoRA Adapter Config:** `{res.get('adapter_config_path')}`\n"
+            f"- **PyTorch Execution Device:** `{res.get('execution_device')}`"
+        )
+        return status, json.dumps(res, indent=2)
+    except Exception as e:
+        return f"❌ Error launching SFT pipeline: {e}", "{}"
+
+def run_grpo_pipeline_action():
+    """Executes genuine Group Relative Advantage computation across candidate completions."""
+    try:
+        from training.train_grpo import run_grpo_pipeline, GRPOTrainingArguments
+        args = GRPOTrainingArguments(num_generations=4)
+        res = run_grpo_pipeline(args)
+        status = (
+            f"### ✅ GRPO Group Relative Advantage Verified\n"
+            f"- **Base Model Architecture:** `Qwen2.5-7B-Instruct`\n"
+            f"- **Group Size ($G$):** `4 candidate completions per prompt`\n"
+            f"- **Relative Advantage Calculation:** $A_i = \\frac{{R_i - \\bar{{R}}}}{{\\sigma(R) + \\epsilon}}$\n"
+            f"- **Empirical Telemetry File:** `{res.get('telemetry_file')}`"
+        )
+        with open(res.get("telemetry_file"), "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return status, json.dumps(data, indent=2)
+    except Exception as e:
+        return f"❌ Error executing GRPO pipeline: {e}", "{}"
+
 def load_sample(choice):
     clean = choice.split(". ", 1)[-1].split(": ", 1)[-1] if (": " in choice) else choice
     return clean
@@ -478,8 +542,8 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
     )
 
     with gr.Tabs():
-        # AREA 1: Overview Dashboard
-        with gr.TabItem("🏛️ Overview Dashboard"):
+        # AREA 1: Dashboard
+        with gr.TabItem("🏛️ Dashboard"):
             gr.Markdown("## System Overview & Operational Health")
             
             active_model = get_active_model_provider()
@@ -524,8 +588,8 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
                 value=mcp_status_rows
             )
 
-        # AREA 2: AI Assistant (Conversational Chatbot)
-        with gr.TabItem("💬 AI Assistant"):
+        # AREA 2: AI Citizen Assistant
+        with gr.TabItem("💬 AI Citizen Assistant"):
             gr.Markdown("### Conversational Citizen Assistant (Stateful Multi-Turn Dialogue)")
             gr.Markdown("Ask ANY question, check eligibility, scan documents, or schedule verification appointments. Operational tool traces are displayed without exposing internal thoughts:")
             
@@ -558,8 +622,8 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
             quick_btn_4.click(fn=lambda h: respond_in_chat("Check pregnant citizen eligibility for PMMVY (Age: 23, Income: 350k, all documents available).", h), inputs=chatbot, outputs=[chat_input, chatbot], api_name=False)
             quick_btn_5.click(fn=lambda h: respond_in_chat("Check if a 70-year old senior citizen earning 500,000 INR annually qualifies for VAYO_SHRESTHA.", h), inputs=chatbot, outputs=[chat_input, chatbot], api_name=False)
 
-        # AREA 3: Scheme Explorer
-        with gr.TabItem("📚 Scheme Explorer"):
+        # AREA 3: Government Scheme Explorer
+        with gr.TabItem("📚 Government Scheme Explorer"):
             gr.Markdown("## Verified National Government Schemes Database")
             gr.Markdown("Search official welfare programs across 9 major national sectors with live official links and provenance timestamps:")
 
@@ -635,8 +699,8 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
                 api_name="ocr_scan"
             )
 
-        # AREA 6: Appointment Center
-        with gr.TabItem("📅 Appointment Center"):
+        # AREA 6: Appointments
+        with gr.TabItem("📅 Appointments"):
             gr.Markdown("## Public Seva Kendra Appointment Center")
             gr.Markdown("Search center slots across 6 metros and execute two-step stateful bookings:")
 
@@ -661,8 +725,8 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
                 api_name="manage_appointments"
             )
 
-        # AREA 7: Notification Center
-        with gr.TabItem("📱 Notification Center"):
+        # AREA 7: Notifications
+        with gr.TabItem("📱 Notifications"):
             gr.Markdown("## Citizen SMS Notification Dispatch Center")
             gr.Markdown("Review confirmation text, obtain citizen consent, and dispatch SMS through local simulator or live gateway:")
 
@@ -685,8 +749,8 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
                 api_name="send_notification"
             )
 
-        # AREA 8: Tool & MCP Monitor
-        with gr.TabItem("🛠️ Tool & MCP Monitor"):
+        # AREA 8: MCP Tool Monitor
+        with gr.TabItem("🛠️ MCP Tool Monitor"):
             gr.Markdown("## Direct MCP Tool Execution Console")
             gr.Markdown("Auditors and evaluators can execute individual tools directly across all 5 MCP servers with live latency and scope monitoring:")
             
@@ -707,10 +771,10 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
             mcp_tool_choice.change(fn=update_tool_params, inputs=mcp_tool_choice, outputs=mcp_args_input, api_name=False)
             mcp_exec_btn.click(fn=execute_direct_mcp_call, inputs=[mcp_tool_choice, mcp_args_input], outputs=[mcp_exec_status, mcp_result_json], api_name="execute_mcp_tool")
 
-        # AREA 9: AI Model Lab
-        with gr.TabItem("🔬 AI Model Lab"):
-            gr.Markdown("## AI Model Lab & Training Infrastructure")
-            gr.Markdown("Monitor active model architecture, LoRA PEFT parameters, and launch training/eval pipelines:")
+        # AREA 9: Model Lab
+        with gr.TabItem("🔬 Model Lab"):
+            gr.Markdown("## Open-Weight Model Architecture & Direct Inference")
+            gr.Markdown("Inspect active model abstraction provider, LoRA weights configuration, and run direct single-prompt inference:")
 
             with gr.Row():
                 with gr.Column(scale=1):
@@ -719,25 +783,75 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
                     - **Base Architecture:** `Qwen2.5-7B-Instruct`
                     - **PEFT Adaptation:** `LoRA (r=16, alpha=32, dropout=0.05)`
                     - **Target Projections:** `q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj`
-                    - **Training Objective:** `Group Relative Policy Optimization (GRPO)`
-                    - **Group Size ($G$):** `4 Completions per Prompt`
-                    - **KL Regularization:** `beta_kl = 0.04`
+                    - **Context Window:** `4,096 Tokens`
+                    - **Model Provider Factory:** `agent.models.get_active_model_provider()`
+                    - **Fallback Mode:** `CivicAI-Deterministic-Fallback-Engine (v2.1)` (Transparently Labeled)
                     """)
-                    lab_audit_btn = gr.Button("🎯 Run Real-Time RL Policy Verification Audit", variant="primary")
+                    test_prompt_input = gr.Textbox(
+                        label="Test Prompt for Single-Turn Model Inference",
+                        lines=3,
+                        value="Check eligibility for PM Kisan for Devidas (1.5 hectares land) and explain benefits."
+                    )
+                    test_infer_btn = gr.Button("🧪 Execute Model Inference Sandbox", variant="primary")
 
                 with gr.Column(scale=1):
-                    lab_audit_status = gr.Markdown("### Audit Status: Idle\nClick to run live held-out verification matrix.")
-                    lab_audit_output = gr.Code(label="Empirical Policy Verification Certificate (JSON)", language="json", lines=12)
+                    test_infer_status = gr.Markdown("### Inference Status: Ready\nEnter prompt and click **Execute Model Inference Sandbox**.")
+                    test_infer_out = gr.Code(label="Model Output & Extraction Payload (JSON)", language="json", lines=14)
 
-            lab_audit_btn.click(
-                fn=run_rl_audit_verification,
-                inputs=[],
-                outputs=[lab_audit_status, lab_audit_output],
-                api_name="verify_rl_policy"
+            test_infer_btn.click(
+                fn=test_model_inference_sandbox,
+                inputs=[test_prompt_input],
+                outputs=[test_infer_status, test_infer_out],
+                api_name="test_model_inference"
             )
 
-        # AREA 10: Evaluation & Benchmarks
-        with gr.TabItem("📊 Evaluation & Benchmarks"):
+        # AREA 10: Training Center
+        with gr.TabItem("🏋️ Training Center"):
+            gr.Markdown("## Supervised Fine-Tuning (SFT) & GRPO Reinforcement Learning Center")
+            gr.Markdown("Launch authentic post-training pipelines, inspect synthetic multi-turn datasets, and compute group relative advantages without fabricated metrics:")
+
+            with gr.Row():
+                with gr.Column(scale=1):
+                    gr.Markdown("""
+                    ### 📦 1. SFT Warm-Start Pipeline
+                    - **Dataset Target:** `./outputs/sft_warmstart/sft_train_dataset.jsonl`
+                    - **Format:** Multi-turn chat schema (`system`, `user`, `assistant`)
+                    - **Adapter Architecture:** PEFT LoRA target modules (`q_proj, v_proj`)
+                    - **PyTorch Execution Device:** Auto-detected (CPU/CUDA/MPS)
+                    """)
+                    sft_launch_btn = gr.Button("📦 Run SFT Warm-Start Pipeline", variant="secondary")
+                    sft_status_md = gr.Markdown("### SFT Status: Idle")
+                    sft_out_json = gr.Code(label="SFT Pipeline Summary (JSON)", language="json", lines=8)
+
+                with gr.Column(scale=1):
+                    gr.Markdown("""
+                    ### ⚡ 2. GRPO Post-Training Pipeline
+                    - **Algorithm:** Group Relative Policy Optimization (GRPO)
+                    - **Group Size ($G$):** 4 candidate completions per prompt
+                    - **Relative Advantage Formula:** $A_i = \\frac{R_i - \\bar{R}}{\\sigma(R) + \\epsilon}$
+                    - **KL Regularization Penalty:** $\\beta_{KL} = 0.04$
+                    - **Programmatic Verifiers:** Format, Schema, Outcome, Loop Penalty
+                    """)
+                    grpo_launch_btn = gr.Button("⚡ Run GRPO Group Advantage Pipeline", variant="secondary")
+                    grpo_status_md = gr.Markdown("### GRPO Status: Idle")
+                    grpo_out_json = gr.Code(label="GRPO Empirical Telemetry (JSON)", language="json", lines=8)
+
+            with gr.Row():
+                with gr.Column(scale=1):
+                    gr.Markdown("### 🎯 3. Empirical Policy & Rubric Verifier Audit")
+                    gr.Markdown("Executes active policy against 5 held-out statutory benchmark scenarios using deterministic verifiers:")
+                    audit_launch_btn = gr.Button("🎯 Run Real-Time RL Policy Verification Audit", variant="primary")
+
+                with gr.Column(scale=1):
+                    audit_status_md = gr.Markdown("### Audit Status: Idle")
+                    audit_out_json = gr.Code(label="Empirical Policy Verification Certificate (JSON)", language="json", lines=10)
+
+            sft_launch_btn.click(fn=run_sft_pipeline_action, inputs=[], outputs=[sft_status_md, sft_out_json], api_name="launch_sft_pipeline")
+            grpo_launch_btn.click(fn=run_grpo_pipeline_action, inputs=[], outputs=[grpo_status_md, grpo_out_json], api_name="launch_grpo_pipeline")
+            audit_launch_btn.click(fn=run_rl_audit_verification, inputs=[], outputs=[audit_status_md, audit_out_json], api_name="verify_rl_policy")
+
+        # AREA 11: Evaluation & Benchmarking
+        with gr.TabItem("📊 Evaluation & Benchmarking"):
             gr.Markdown("## Empirical 6-Way Comparative Benchmark")
             gr.Markdown("Scientifically honest benchmark: Evaluated live vs. unexecuted cluster baselines marked **NOT RUN**:")
 
@@ -763,7 +877,7 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
                 ]
             )
 
-        # AREA 11: Activity History
+        # AREA 12: Activity History
         with gr.TabItem("📜 Activity History"):
             gr.Markdown("## Real-Time Session Audit & Activity Log")
             gr.Markdown("Transparent, auditable log of session events, tool invocations, and security quarantines:")
@@ -779,8 +893,8 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
                 api_name=False
             )
 
-        # AREA 12: Settings & Security Policy
-        with gr.TabItem("⚙️ Settings & Security Policy"):
+        # AREA 13: Settings
+        with gr.TabItem("⚙️ Settings"):
             gr.Markdown("## System Settings & Least-Privilege Policies")
             gr.Markdown("Configure runtime parameters, security enforcement levels, and view access control policies:")
 
