@@ -83,3 +83,42 @@ def test_idempotent_replay_on_stateful_write():
     assert res2.get("idempotentReplay") is True
     token2 = json.loads(res2["content"][0]["text"])["booking_reference"]
     assert token1 == token2, "Idempotent replay must return identical booking token"
+
+def test_bookings_store_persistence_and_session():
+    from mcp_servers.bookings_store import (
+        save_booking_record,
+        load_all_bookings,
+        get_bookings_table_rows,
+        set_current_session,
+        get_current_session
+    )
+    # Test session update
+    sess = set_current_session("Sunita Deshmukh", "9822012345", "citizen", "Satara, Maharashtra")
+    assert sess["signed_in"] is True
+    assert sess["citizen_name"] == "Sunita Deshmukh"
+    assert get_current_session()["citizen_name"] == "Sunita Deshmukh"
+
+    # Test booking persistence
+    test_record = {
+        "booking_id": "BK-TEST-99999",
+        "citizen_name": "Sunita Deshmukh",
+        "mobile": "9822012345",
+        "center_id": "SEVA_PUNE_NORTH",
+        "slot_time": "2026-12-10 11:00 AM",
+        "scheme_id": "LADKI_BAHIN",
+        "confirmation_token": "CONFIRM-TEST99999"
+    }
+    saved = save_booking_record(test_record)
+    assert saved["booking_id"] == "BK-TEST-99999"
+    assert saved["status"] == "CONFIRMED"
+
+    # Test load and filter
+    all_b = load_all_bookings("Sunita")
+    assert len(all_b) >= 1
+    assert any(b["booking_id"] == "BK-TEST-99999" for b in all_b)
+
+    # Test table row formatter
+    rows = get_bookings_table_rows("Sunita")
+    assert len(rows) >= 1
+    assert rows[0][0] == "BK-TEST-99999"
+

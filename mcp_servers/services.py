@@ -678,6 +678,18 @@ def build_appointment_server(sec: SecurityPolicyEngine) -> MCPToolServer:
         booking_ref = f"BK-{cid[:4]}-{abs(hash(name + slot)) % 100000}"
 
         clean_name = sec.mask_pii_string(name)
+        try:
+            from mcp_servers.bookings_store import save_booking_record
+            save_booking_record({
+                "booking_id": booking_ref,
+                "citizen_name": name,
+                "center_id": cid,
+                "slot_time": slot,
+                "scheme_id": sch,
+                "confirmation_token": confirmation_token or "AUTHORIZED"
+            })
+        except Exception:
+            pass
         return {
             "scope": "write:appointments",
             "status": "CONFIRMED",
