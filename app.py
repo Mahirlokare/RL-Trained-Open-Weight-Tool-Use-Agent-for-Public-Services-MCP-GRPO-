@@ -338,10 +338,15 @@ def run_appointment_center_action(center_id: str, action_type: str, slot_time: s
             "center_id": center_id,
             "slot_time": slot_time,
             "citizen_name": citizen_name or "Citizen",
-            "scheme_id": scheme_id or "PM_KISAN",
-            "confirmation_token": confirmation_token.strip() if confirmation_token else None
+            "scheme_id": scheme_id or "PM_KISAN"
         }
-        res = hub.execute_call("book_appointment", args)
+        token_clean = confirmation_token.strip() if confirmation_token else None
+        if token_clean:
+            args["confirmation_token"] = token_clean
+            res = hub.execute_call("book_appointment", args)
+        else:
+            # First step: Create reservation hold and generate confirmation token
+            res = hub.execute_call("request_appointment_hold", args)
 
     elapsed_ms = round((time.time() - t0) * 1000, 2)
     raw_text = res.get("content", [{}])[0].get("text", "{}")
