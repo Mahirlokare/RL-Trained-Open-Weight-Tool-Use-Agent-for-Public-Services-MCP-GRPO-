@@ -49,9 +49,9 @@
       "syntax_score": 0.62,
       "loop_penalty": 0.0,
       "tools_called": [
-        "check_center_slots",
         "book_appointment",
-        "send_confirmation_sms"
+        "send_confirmation_sms",
+        "check_center_slots"
       ],
       "status": "PASSED"
     },

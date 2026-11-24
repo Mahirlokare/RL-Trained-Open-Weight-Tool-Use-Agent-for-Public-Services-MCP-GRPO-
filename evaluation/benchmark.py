@@ -5,8 +5,16 @@ Compares:
 2. SFT Warm-Start Baseline
 3. RL-Trained Policy (GRPO)
 """
+import os
+import sys
 import json
 import time
+
+# Ensure project root is in sys.path
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 from typing import Dict, Any, List, Callable
 from agent.runtime import MCPAgentRuntime
 from agent.schema import AgentTrajectory
