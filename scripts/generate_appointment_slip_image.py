@@ -205,6 +205,7 @@ def create_appointment_slip(
 
     img.save(output_path, "PNG", dpi=(300, 300))
     print(f"Refined Appointment Slip saved: {output_path}")
+    return output_path
 
 if __name__ == "__main__":
     out_dir = r"C:\Users\Admin\.gemini\antigravity\scratch\rl-mcp-agent\docs"

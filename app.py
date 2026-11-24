@@ -334,6 +334,74 @@ from mcp_servers.bookings_store import (
     get_current_session,
     set_current_session
 )
+from scripts.generate_appointment_slip_image import create_appointment_slip
+
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_PASS_PATH = os.path.join(PROJECT_ROOT, "docs", "Seva_Kendra_Appointment_Slip.png")
+
+CENTER_METADATA = {
+    "SEVA_PUNE_NORTH": {
+        "name": "SEVA KENDRA PUNE NORTH (CENTRAL REGISTRY)",
+        "address": "Ground Floor, District Collectorate Complex, Station Road, Pune - 411001"
+    },
+    "SEVA_PUNE_SOUTH": {
+        "name": "SEVA KENDRA PUNE SOUTH (SWARGATE DIVISION)",
+        "address": "Municipal Administrative Building, Tilak Road, Swargate, Pune - 411042"
+    },
+    "SEVA_MUMBAI_CENTRAL": {
+        "name": "SEVA KENDRA MUMBAI CENTRAL (METRO SEVA SADAN)",
+        "address": "Old Customs House Complex, Fort, Mumbai - 400001"
+    },
+    "SEVA_MUMBAI_SUBURBAN": {
+        "name": "SEVA KENDRA BANDRA KURLA (SUBURBAN HEADQUARTERS)",
+        "address": "Bandra Kurla Complex, Kalanagar, Bandra East, Mumbai - 400051"
+    },
+    "SEVA_NAGPUR_EAST": {
+        "name": "SEVA KENDRA NAGPUR EAST (CIVIL LINES)",
+        "address": "Civil Lines, Near High Court Square, Nagpur - 440001"
+    },
+    "SEVA_DELHI_CENTRAL": {
+        "name": "SEVA KENDRA DELHI CENTRAL (CONNAUGHT PRECINCT)",
+        "address": "Sansad Marg, Near Patel Chowk, New Delhi - 110001"
+    },
+    "SEVA_DELHI_NORTH": {
+        "name": "SEVA KENDRA DELHI NORTH (CIVIL LINES NORTH)",
+        "address": "Old Secretariat Complex, 5 Sham Nath Marg, Delhi - 110054"
+    },
+    "SEVA_BLR_URBAN": {
+        "name": "SEVA KENDRA BENGALURU URBAN (KANDHAYA BHAVAN)",
+        "address": "Kandhaya Bhavan, KG Road, Gandhi Nagar, Bengaluru - 560009"
+    },
+    "SEVA_HYD_CENTRAL": {
+        "name": "SEVA KENDRA HYDERABAD CENTRAL (NAMPALLY SADAN)",
+        "address": "Collectorate Office Compound, Nampally Station Road, Hyderabad - 500001"
+    }
+}
+
+def handle_generate_custom_pass(citizen_name: str, center_id: str, slot_time: str, scheme_id: str, token_ref: str):
+    center_info = CENTER_METADATA.get(center_id, {
+        "name": f"SEVA KENDRA {str(center_id).replace('_', ' ')}",
+        "address": "Public District Administrative Kendra, Main Hall, Counter 04"
+    })
+    scheme_info = SCHEMES_DB.get(scheme_id, {})
+    scheme_title = f"{scheme_id} ({scheme_info.get('title', 'Welfare Scheme')})"
+    booking_id = f"BK-SEVA-{abs(hash(str(citizen_name) + str(slot_time))) % 100000:05d}"
+    out_path = DEFAULT_PASS_PATH
+    try:
+        create_appointment_slip(
+            output_path=out_path,
+            citizen_name=citizen_name or "Citizen Beneficiary",
+            booking_id=booking_id,
+            scheme_name=scheme_title,
+            kendra_name=center_info["name"],
+            kendra_address=center_info["address"],
+            slot_time=slot_time or "2026-12-01 10:00 AM",
+            token_ref=token_ref or f"CONFIRM-{abs(hash(booking_id)) % 10000000:08X}"
+        )
+        status_msg = f"✅ Generated Official Stamped Pass for **{citizen_name}** (`{booking_id}`) at **{center_info['name']}**"
+    except Exception as e:
+        status_msg = f"⚠️ Notice: Default pass retained ({str(e)})"
+    return out_path, out_path, status_msg
 
 def run_appointment_center_action(center_id: str, action_type: str, slot_time: str, citizen_name: str, scheme_id: str, confirmation_token: str):
     hub = create_default_mcp_hub()
@@ -358,6 +426,7 @@ def run_appointment_center_action(center_id: str, action_type: str, slot_time: s
 
     elapsed_ms = round((time.time() - t0) * 1000, 2)
     raw_text = res.get("content", [{}])[0].get("text", "{}")
+    pass_img = DEFAULT_PASS_PATH
     try:
         data = json.loads(raw_text)
         status = data.get("status", "COMPLETED")
@@ -367,10 +436,21 @@ def run_appointment_center_action(center_id: str, action_type: str, slot_time: s
             summary += "To finalize this booking, paste this token into the 'Confirmation Token' field and re-submit."
         elif data.get("booking_reference"):
             summary += f"✅ **Confirmed Slot**: Reference `{data.get('booking_reference')}` at `{data.get('center')}` for `{data.get('citizen_name')}`\n"
-            summary += f"📁 **Saved to Registry**: Booking permanently archived. View in the 'Saved Bookings Registry' table below."
-        return summary, json.dumps(data, indent=2), get_bookings_table_rows()
+            summary += f"📁 **Saved to Registry**: Booking permanently archived. View in the 'Saved Bookings Registry' table below.\n"
+            summary += f"🖨️ **Official Stamped Pass**: Stamped pass dynamically rendered below."
+            try:
+                handle_generate_custom_pass(
+                    citizen_name=data.get('citizen_name', citizen_name),
+                    center_id=center_id,
+                    slot_time=slot_time,
+                    scheme_id=scheme_id,
+                    token_ref=token_clean or data.get('confirmation_token', 'CONFIRM-TOKEN')
+                )
+            except Exception:
+                pass
+        return summary, json.dumps(data, indent=2), get_bookings_table_rows(), pass_img, pass_img
     except Exception:
-        return f"### Result ({elapsed_ms} ms)", raw_text, get_bookings_table_rows()
+        return f"### Result ({elapsed_ms} ms)", raw_text, get_bookings_table_rows(), pass_img, pass_img
 
 def run_notification_center_action(phone_number: str, booking_reference: str, message_text: str, consent_agreed: bool):
     hub = create_default_mcp_hub()
@@ -806,14 +886,22 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
 
                 with gr.Column(scale=1):
                     gr.Markdown("### 📥 Official Stamped Appointment Pass")
-                    gr.Image(value="docs/Seva_Kendra_Appointment_Slip.png", label="Official Kendra Pass with Rubber Seal")
-                    download_slip_file = gr.File(value="docs/Seva_Kendra_Appointment_Slip.png", label="Download High-Res Appointment Slip (PNG)")
+                    apt_pass_image = gr.Image(value=DEFAULT_PASS_PATH, label="Official Kendra Pass with Rubber Seal")
+                    download_slip_file = gr.File(value=DEFAULT_PASS_PATH, label="Download High-Res Appointment Slip (PNG)")
+                    generate_pass_btn = gr.Button("🖨️ Generate / Refresh Stamped Pass for this Booking", variant="primary")
+                    pass_status_out = gr.Markdown("Ready. Click button above or execute a booking to generate a custom stamped appointment pass.")
 
             apt_exec_btn.click(
                 fn=run_appointment_center_action,
                 inputs=[apt_center, apt_action, apt_slot, apt_name, apt_scheme, apt_token],
-                outputs=[apt_status_out, apt_json_out, saved_bookings_table],
+                outputs=[apt_status_out, apt_json_out, saved_bookings_table, apt_pass_image, download_slip_file],
                 api_name="manage_appointments"
+            )
+
+            generate_pass_btn.click(
+                fn=handle_generate_custom_pass,
+                inputs=[apt_name, apt_center, apt_slot, apt_scheme, apt_token],
+                outputs=[apt_pass_image, download_slip_file, pass_status_out]
             )
 
             refresh_bookings_btn.click(
