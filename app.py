@@ -19,10 +19,15 @@ covering 9 National Welfare Sectors.
 12. Settings & Security Policy (Least-privilege RBAC policies, API keys, cache management)
 """
 import os
+import sys
 import json
 import time
 import logging
 from typing import List, Dict, Any, Optional, Tuple
+
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 import gradio as gr
 
@@ -334,10 +339,22 @@ from mcp_servers.bookings_store import (
     get_current_session,
     set_current_session
 )
-from scripts.generate_appointment_slip_image import create_appointment_slip
 
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+try:
+    from scripts.generate_appointment_slip_image import create_appointment_slip
+except Exception as e:
+    logging.warning(f"Failed to import appointment slip generator: {e}")
+    create_appointment_slip = None
+
 DEFAULT_PASS_PATH = os.path.join(PROJECT_ROOT, "docs", "Seva_Kendra_Appointment_Slip.png")
+
+# Ensure docs directory exists and default appointment slip is pre-generated on startup
+try:
+    os.makedirs(os.path.join(PROJECT_ROOT, "docs"), exist_ok=True)
+    if not os.path.exists(DEFAULT_PASS_PATH) and create_appointment_slip:
+        create_appointment_slip(output_path=DEFAULT_PASS_PATH)
+except Exception as e:
+    logging.warning(f"Notice: Initial pass pre-generation deferred: {e}")
 
 CENTER_METADATA = {
     "SEVA_PUNE_NORTH": {
@@ -388,20 +405,24 @@ def handle_generate_custom_pass(citizen_name: str, center_id: str, slot_time: st
     booking_id = f"BK-SEVA-{abs(hash(str(citizen_name) + str(slot_time))) % 100000:05d}"
     out_path = DEFAULT_PASS_PATH
     try:
-        create_appointment_slip(
-            output_path=out_path,
-            citizen_name=citizen_name or "Citizen Beneficiary",
-            booking_id=booking_id,
-            scheme_name=scheme_title,
-            kendra_name=center_info["name"],
-            kendra_address=center_info["address"],
-            slot_time=slot_time or "2026-12-01 10:00 AM",
-            token_ref=token_ref or f"CONFIRM-{abs(hash(booking_id)) % 10000000:08X}"
-        )
-        status_msg = f"✅ Generated Official Stamped Pass for **{citizen_name}** (`{booking_id}`) at **{center_info['name']}**"
+        if create_appointment_slip:
+            create_appointment_slip(
+                output_path=out_path,
+                citizen_name=citizen_name or "Citizen Beneficiary",
+                booking_id=booking_id,
+                scheme_name=scheme_title,
+                kendra_name=center_info["name"],
+                kendra_address=center_info["address"],
+                slot_time=slot_time or "2026-12-01 10:00 AM",
+                token_ref=token_ref or f"CONFIRM-{abs(hash(booking_id)) % 10000000:08X}"
+            )
+            status_msg = f"✅ Generated Official Stamped Pass for **{citizen_name}** (`{booking_id}`) at **{center_info['name']}**"
+        else:
+            status_msg = "ℹ️ Notice: Stamped pass generation utility running in fallback mode."
     except Exception as e:
         status_msg = f"⚠️ Notice: Default pass retained ({str(e)})"
-    return out_path, out_path, status_msg
+    res_path = out_path if os.path.exists(out_path) else None
+    return res_path, res_path, status_msg
 
 def run_appointment_center_action(center_id: str, action_type: str, slot_time: str, citizen_name: str, scheme_id: str, confirmation_token: str):
     hub = create_default_mcp_hub()
@@ -426,7 +447,7 @@ def run_appointment_center_action(center_id: str, action_type: str, slot_time: s
 
     elapsed_ms = round((time.time() - t0) * 1000, 2)
     raw_text = res.get("content", [{}])[0].get("text", "{}")
-    pass_img = DEFAULT_PASS_PATH
+    pass_img = DEFAULT_PASS_PATH if os.path.exists(DEFAULT_PASS_PATH) else None
     try:
         data = json.loads(raw_text)
         status = data.get("status", "COMPLETED")
@@ -886,8 +907,9 @@ with gr.Blocks(title="Civic AI — Universal Public Services Agent (MCP + GRPO)"
 
                 with gr.Column(scale=1):
                     gr.Markdown("### 📥 Official Stamped Appointment Pass")
-                    apt_pass_image = gr.Image(value=DEFAULT_PASS_PATH, label="Official Kendra Pass with Rubber Seal")
-                    download_slip_file = gr.File(value=DEFAULT_PASS_PATH, label="Download High-Res Appointment Slip (PNG)")
+                    init_pass_val = DEFAULT_PASS_PATH if os.path.exists(DEFAULT_PASS_PATH) else None
+                    apt_pass_image = gr.Image(value=init_pass_val, label="Official Kendra Pass with Rubber Seal")
+                    download_slip_file = gr.File(value=init_pass_val, label="Download High-Res Appointment Slip (PNG)")
                     generate_pass_btn = gr.Button("🖨️ Generate / Refresh Stamped Pass for this Booking", variant="primary")
                     pass_status_out = gr.Markdown("Ready. Click button above or execute a booking to generate a custom stamped appointment pass.")
 
